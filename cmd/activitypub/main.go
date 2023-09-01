@@ -9,14 +9,12 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"path/filepath"
 
 	"github.com/labstack/echo-contrib/echoprometheus"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 
 	"github.com/totegamma/ccworld-ap-bridge/x/activitypub"
-	"github.com/totegamma/concurrent/x/auth"
 	"github.com/totegamma/concurrent/x/util"
 
 	"github.com/redis/go-redis/extra/redisotel/v9"
@@ -33,45 +31,25 @@ import (
 
 func main() {
 	e := echo.New()
-	config := util.Config{}
-	configPath := os.Getenv("CONCURRENT_CONFIG")
-	if configPath == "" {
-		configPath = "/etc/concurrent/config.yaml"
-	}
 
+	config := activitypub.APConfig{}
+	configPath := os.Getenv("CONFIGPATH")
+	if configPath == "" {
+		configPath = "/etc/concurrent/activitypub.yaml"
+	}
 	err := config.Load(configPath)
 	if err != nil {
 		e.Logger.Fatal(err)
 	}
 
-	apConf := activitypub.APConfig{}
-	apConfPath := os.Getenv("GATEWAY_CONFIG")
-	if apConfPath == "" {
-		apConfPath = "/etc/concurrent/activitypub.yaml"
-	}
-	err = apConf.Load(apConfPath)
-	if err != nil {
-		e.Logger.Fatal(err)
-	}
-
-	log.Print("Concurrent ", util.GetFullVersion(), " starting...")
-	log.Print("Config loaded! I am: ", config.Concurrent.CCID)
-
-	log.Print("ApConfig loaded! Proxy: ", apConf.ProxyCCID)
-
-	logfile, err := os.OpenFile(filepath.Join(config.Server.LogPath, "activitypub-access.log"), os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer logfile.Close()
-
-	e.Logger.SetOutput(logfile)
+	log.Print("CCWorldAPBridger", util.GetFullVersion(), " starting...")
+	log.Print("ApConfig loaded! Proxy: ", config.ProxyCCID)
 
 	e.HidePort = true
 	e.HideBanner = true
 
 	if config.Server.EnableTrace {
-		cleanup, err := setupTraceProvider(config.Server.TraceEndpoint, config.Concurrent.FQDN+"/ccapi", util.GetFullVersion())
+		cleanup, err := setupTraceProvider(config.Server.TraceEndpoint, config.FQDN+"/ccapi", util.GetFullVersion())
 		if err != nil {
 			panic(err)
 		}
@@ -82,7 +60,7 @@ func main() {
 				return c.Path() == "/metrics" || c.Path() == "/health"
 			},
 		)
-		e.Use(otelecho.Middleware(config.Concurrent.FQDN, skipper))
+		e.Use(otelecho.Middleware(config.FQDN, skipper))
 	}
 
 	e.Use(echoprometheus.NewMiddleware("ccapi"))
@@ -134,8 +112,7 @@ func main() {
 		panic("failed to setup tracing plugin")
 	}
 
-	authService := SetupAuthService(db, config)
-	activitypubHandler := SetupActivitypubHandler(db, rdb, config, apConf)
+	activitypubHandler := SetupActivitypubHandler(db, rdb, config)
 
 	e.GET("/.well-known/webfinger", activitypubHandler.WebFinger)
 	e.GET("/.well-known/nodeinfo", activitypubHandler.NodeInfoWellKnown)
@@ -150,10 +127,8 @@ func main() {
 	ap.GET("/api/entity/:ccid", activitypubHandler.GetEntityID)
 	ap.GET("/api/person/:id", activitypubHandler.GetPerson)
 
-	// should be restricted
-	apR := ap.Group("", auth.JWT)
-	apR.POST("/api/entity", activitypubHandler.CreateEntity, authService.Restrict(auth.ISLOCAL)) // ISLOCAL
-	apR.PUT("/api/person", activitypubHandler.UpdatePerson, authService.Restrict(auth.ISLOCAL))  // ISLOCAL
+	ap.POST("/api/entity", activitypubHandler.CreateEntity) // ISLOCAL
+	ap.PUT("/api/person", activitypubHandler.UpdatePerson)  // ISLOCAL
 
 	e.GET("/health", func(c echo.Context) (err error) {
 		ctx := c.Request().Context()

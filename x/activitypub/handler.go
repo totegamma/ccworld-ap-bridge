@@ -29,8 +29,7 @@ type Handler struct {
 	rdb         *redis.Client
 	message     *message.Service
 	association *association.Service
-	config      util.Config
-	apconfig    APConfig
+	config    APConfig
 }
 
 // NewHandler returns a new Handler.
@@ -39,10 +38,9 @@ func NewHandler(
 	rdb *redis.Client,
 	message *message.Service,
 	association *association.Service,
-	config util.Config,
-	apconfig APConfig,
+	config APConfig,
 ) *Handler {
-	return &Handler{repo, rdb, message, association, config, apconfig}
+	return &Handler{repo, rdb, message, association, config}
 }
 
 // :: Activitypub Related Functions ::
@@ -66,7 +64,7 @@ func (h Handler) WebFinger(c echo.Context) error {
 		return c.String(http.StatusBadRequest, "Invalid resource")
 	}
 	username, domain := split[0], split[1]
-	if domain != h.config.Concurrent.FQDN {
+	if domain != h.config.FQDN {
 		return c.String(http.StatusBadRequest, "Invalid resource")
 	}
 
@@ -81,7 +79,7 @@ func (h Handler) WebFinger(c echo.Context) error {
 			{
 				Rel:  "self",
 				Type: "application/activity+json",
-				Href: "https://" + h.config.Concurrent.FQDN + "/ap/acct/" + username,
+				Href: "https://" + h.config.FQDN + "/ap/acct/" + username,
 			},
 		},
 	})
@@ -112,9 +110,9 @@ func (h Handler) User(c echo.Context) error {
 	return c.JSON(http.StatusOK, Person{
 		Context:           "https://www.w3.org/ns/activitystreams",
 		Type:              "Person",
-		ID:                "https://" + h.config.Concurrent.FQDN + "/ap/acct/" + id,
-		Inbox:             "https://" + h.config.Concurrent.FQDN + "/ap/acct/" + id + "/inbox",
-		Outbox:            "https://" + h.config.Concurrent.FQDN + "/ap/acct/" + id + "/outbox",
+		ID:                "https://" + h.config.FQDN + "/ap/acct/" + id,
+		Inbox:             "https://" + h.config.FQDN + "/ap/acct/" + id + "/inbox",
+		Outbox:            "https://" + h.config.FQDN + "/ap/acct/" + id + "/outbox",
 		PreferredUsername: id,
 		Name:              person.Name,
 		Summary:           person.Summary,
@@ -125,9 +123,9 @@ func (h Handler) User(c echo.Context) error {
 			URL:       person.IconURL,
 		},
 		PublicKey: Key{
-			ID:           "https://" + h.config.Concurrent.FQDN + "/ap/key/" + id,
+			ID:           "https://" + h.config.FQDN + "/ap/key/" + id,
 			Type:         "Key",
-			Owner:        "https://" + h.config.Concurrent.FQDN + "/ap/acct/" + id,
+			Owner:        "https://" + h.config.FQDN + "/ap/acct/" + id,
 			PublicKeyPem: entity.Publickey,
 		},
 	})
@@ -177,8 +175,8 @@ func (h Handler) Note(c echo.Context) error {
 	return c.JSON(http.StatusOK, Note{
 		Context:      "https://www.w3.org/ns/activitystreams",
 		Type:         "Note",
-		ID:           "https://" + h.config.Concurrent.FQDN + "/ap/note/" + id,
-		AttributedTo: "https://" + h.config.Concurrent.FQDN + "/ap/acct/" + entity.ID,
+		ID:           "https://" + h.config.FQDN + "/ap/note/" + id,
+		AttributedTo: "https://" + h.config.FQDN + "/ap/acct/" + entity.ID,
 		Content:      text,
 		Published:    msg.CDate.Format(time.RFC3339),
 		To:           []string{"https://www.w3.org/ns/activitystreams#Public"},
@@ -218,9 +216,9 @@ func (h Handler) Inbox(c echo.Context) error {
 		}
 		accept := Accept{
 			Context: "https://www.w3.org/ns/activitystreams",
-			ID:      "https://" + h.config.Concurrent.FQDN + "/ap/acct/" + id + "/follows/" + url.PathEscape(requester.ID),
+			ID:      "https://" + h.config.FQDN + "/ap/acct/" + id + "/follows/" + url.PathEscape(requester.ID),
 			Type:    "Accept",
-			Actor:   "https://" + h.config.Concurrent.FQDN + "/ap/acct/" + id,
+			Actor:   "https://" + h.config.FQDN + "/ap/acct/" + id,
 			Object:  object,
 		}
 
@@ -253,7 +251,7 @@ func (h Handler) Inbox(c echo.Context) error {
 		return c.String(http.StatusOK, "follow accepted")
 
 	case "Like":
-		targetID := strings.Replace(object.Object.(string), "https://"+h.config.Concurrent.FQDN+"/ap/note/", "", 1)
+		targetID := strings.Replace(object.Object.(string), "https://"+h.config.FQDN+"/ap/note/", "", 1)
 		_, err := h.message.Get(ctx, targetID)
 		if err != nil {
 			span.RecordError(err)
@@ -267,7 +265,7 @@ func (h Handler) Inbox(c echo.Context) error {
 		}
 
 		b := association.SignedObject{
-			Signer: h.apconfig.ProxyCCID,
+			Signer: h.config.ProxyCCID,
 			Type:   "Association",
 			Schema: "https://raw.githubusercontent.com/totegamma/concurrent-schemas/master/associations/emoji/0.0.1.json",
 			Body: map[string]interface{}{
@@ -294,7 +292,7 @@ func (h Handler) Inbox(c echo.Context) error {
 		}
 
 		objstr := string(objb)
-		objsig, err := util.SignBytes(objb, h.apconfig.ProxyPrivateKey)
+		objsig, err := util.SignBytes(objb, h.config.ProxyPrivateKey)
 		if err != nil {
 			span.RecordError(err)
 			return c.String(http.StatusInternalServerError, "Internal server error (sign error)")
@@ -500,7 +498,7 @@ func (h Handler) NodeInfoWellKnown(c echo.Context) error {
 		Links: []WellKnownLink{
 			{
 				Rel:  "http://nodeinfo.diaspora.software/ns/schema/2.0",
-				Href: "https://" + h.config.Concurrent.FQDN + "/ap/nodeinfo/2.0",
+				Href: "https://" + h.config.FQDN + "/ap/nodeinfo/2.0",
 			},
 		},
 	})
@@ -520,7 +518,7 @@ func (h Handler) NodeInfo(c echo.Context) error {
 		Protocols: []string{
 			"activitypub",
 		},
-		OpenRegistrations: h.config.Concurrent.Registration == "open",
+		OpenRegistrations: h.config.Registration == "open",
 		Metadata: NodeInfoMetadata{
 			NodeName:        h.config.Profile.Nickname,
 			NodeDescription: h.config.Profile.Description,

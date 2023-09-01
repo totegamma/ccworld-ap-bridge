@@ -181,8 +181,18 @@ type WorldEmoji struct {
 	imageURL string
 }
 
+type Server struct {
+	Dsn            string `yaml:"dsn"`
+	RedisAddr      string `yaml:"redisAddr"`
+	EnableTrace    bool   `yaml:"enableTrace"`
+	TraceEndpoint  string `yaml:"traceEndpoint"`
+	LogPath        string `yaml:"logPath"`
+}
+
 type APConfig struct {
 	ProxyPrivateKey string `yaml:"workerPrivateKey"`
+	Server     Server     `yaml:"server"`
+	FQDN	   string     `yaml:"fqdn"`
 
 	// internal generated
 	ProxyCCID      string
