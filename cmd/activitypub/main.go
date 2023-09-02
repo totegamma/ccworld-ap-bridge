@@ -114,6 +114,7 @@ func main() {
 		&activitypub.ApEntity{},
 		&activitypub.ApPerson{},
 		&activitypub.ApFollow{},
+		&activitypub.ApFollower{},
 	)
 
 	rdb := redis.NewClient(&redis.Options{
@@ -154,6 +155,9 @@ func main() {
 	apR := ap.Group("", auth.JWT)
 	apR.POST("/api/entity", activitypubHandler.CreateEntity, authService.Restrict(auth.ISLOCAL)) // ISLOCAL
 	apR.PUT("/api/person", activitypubHandler.UpdatePerson, authService.Restrict(auth.ISLOCAL))  // ISLOCAL
+	apR.POST("/api/follow/:id", activitypubHandler.Follow, authService.Restrict(auth.ISLOCAL))   // ISLOCAL
+	apR.DELETE("/api/follow/:id", activitypubHandler.UnFollow, authService.Restrict(auth.ISLOCAL))   // ISLOCAL
+	apR.GET("/api/stats", activitypubHandler.GetStats, authService.Restrict(auth.ISLOCAL))          // ISLOCAL
 
 	e.GET("/health", func(c echo.Context) (err error) {
 		ctx := c.Request().Context()

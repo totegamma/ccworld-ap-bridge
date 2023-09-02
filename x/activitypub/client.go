@@ -1,6 +1,7 @@
 package activitypub
 
 import (
+	"log"
 	"bytes"
 	"context"
 	"crypto/x509"
@@ -13,6 +14,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"time"
+	"strings"
 )
 
 // FetchPerson fetches a person from remote ap server.
@@ -42,6 +44,51 @@ func FetchPerson(ctx context.Context, actor string) (Person, error) {
 	}
 
 	return person, nil
+}
+
+// ResolveActor resolves an actor from id notation.
+func ResolveActor(ctx context.Context, id string) (string, error) {
+	_, span := tracer.Start(ctx, "ResolveActor")
+	defer span.End()
+
+	if id[0] == '@' {
+		id = id[1:]
+	}
+
+	split := strings.Split(id, "@")
+	if len(split) != 2 {
+		return "", fmt.Errorf("invalid id")
+	}
+
+	domain := split[1]
+
+	var webfinger WebFinger
+	req, err := http.NewRequest("GET", "https://"+domain+"/.well-known/webfinger?resource=acct:"+id, nil)
+	if err != nil {
+		return "", err
+	}
+	otel.GetTextMapPropagator().Inject(ctx, propagation.HeaderCarrier(req.Header))
+	req.Header.Set("Accept", "application/jrd+json")
+	client := new(http.Client)
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	body, _ := ioutil.ReadAll(resp.Body)
+
+	err = json.Unmarshal(body, &webfinger)
+	if err != nil {
+		fmt.Println(string(body))
+		return "", err
+	}
+
+	if len(webfinger.Links) == 0 {
+		return "", fmt.Errorf("no links found")
+	}
+
+	return webfinger.Links[0].Href, nil
 }
 
 // PostToInbox posts a message to remote ap server.
@@ -82,14 +129,23 @@ func (h Handler) PostToInbox(ctx context.Context, inbox string, object interface
 	headersToSign := []string{httpsig.RequestTarget, "date", "digest"}
 	signer, _, err := httpsig.NewSigner(prefs, digestAlgorithm, headersToSign, httpsig.Signature, 0)
 	if err != nil {
+		log.Println(err)
 		return err
 	}
 	err = signer.SignRequest(priv, "https://"+h.config.Concurrent.FQDN+"/ap/key/"+signUser, req, objectBytes)
 
 	resp, err := client.Do(req)
 	if err != nil {
+		log.Println(err)
 		return err
 	}
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Println(err)
+	}
+	log.Println(string(body))
+
 	defer resp.Body.Close()
 
 	return nil

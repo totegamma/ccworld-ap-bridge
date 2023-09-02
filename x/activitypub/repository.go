@@ -44,6 +44,15 @@ func (r Repository) CreateEntity(ctx context.Context, entity ApEntity) (ApEntity
 	return entity, result.Error
 }
 
+// UpdateEntity updates an entity.
+func (r Repository) UpdateEntity(ctx context.Context, entity ApEntity) (ApEntity, error) {
+	ctx, span := tracer.Start(ctx, "RepositoryUpdateEntity")
+	defer span.End()
+
+	result := r.db.WithContext(ctx).Save(&entity)
+	return entity, result.Error
+}
+
 // GetPersonByID returns a person by ID.
 func (r Repository) GetPersonByID(ctx context.Context, id string) (ApPerson, error) {
 	ctx, span := tracer.Start(ctx, "RepositoryGetPersonByID")
@@ -63,13 +72,52 @@ func (r Repository) UpsertPerson(ctx context.Context, person ApPerson) (ApPerson
 	return person, result.Error
 }
 
-// Save Follow action
+// Save Follower action
+func (r *Repository) SaveFollower(ctx context.Context, follower ApFollower) error {
+	ctx, span := tracer.Start(ctx, "RepositorySaveFollow")
+	defer span.End()
+
+	return r.db.WithContext(ctx).Create(&follower).Error
+}
+
+// SaveFollowing saves follow action
 func (r *Repository) SaveFollow(ctx context.Context, follow ApFollow) error {
 	ctx, span := tracer.Start(ctx, "RepositorySaveFollow")
 	defer span.End()
 
 	return r.db.WithContext(ctx).Create(&follow).Error
 }
+
+// GetFollows returns owners follows
+func (r *Repository) GetFollows(ctx context.Context, ownerID string) ([]ApFollow, error) {
+	ctx, span := tracer.Start(ctx, "RepositoryGetFollows")
+	defer span.End()
+
+	var follows []ApFollow
+	err := r.db.WithContext(ctx).Where("subscriber_user_id= ?", ownerID).Find(&follows).Error
+	return follows, err
+}
+
+// GetFollowers returns owners followers
+func (r *Repository) GetFollowers(ctx context.Context, ownerID string) ([]ApFollower, error) {
+	ctx, span := tracer.Start(ctx, "RepositoryGetFollowers")
+	defer span.End()
+
+	var followers []ApFollower
+	err := r.db.WithContext(ctx).Where("publisher_user_id= ?", ownerID).Find(&followers).Error
+	return followers, err
+}
+
+// GetFollowerByTuple returns follow by tuple
+func (r *Repository) GetFollowerByTuple(ctx context.Context, local, remote string) (ApFollower, error) {
+	ctx, span := tracer.Start(ctx, "RepositoryGetFollowerByTuple")
+	defer span.End()
+
+	var follower ApFollower
+	result := r.db.WithContext(ctx).Where("publisher_user_id = ? AND subscriber_person_url = ?", local, remote).First(&follower)
+	return follower, result.Error
+}
+
 
 // GetFollowByID returns follow by ID
 func (r *Repository) GetFollowByID(ctx context.Context, id string) (ApFollow, error) {
@@ -81,14 +129,33 @@ func (r *Repository) GetFollowByID(ctx context.Context, id string) (ApFollow, er
 	return follow, result.Error
 }
 
-// GetAllFollows returns all Follow actions
-func (r *Repository) GetAllFollows(ctx context.Context) ([]ApFollow, error) {
+// GetFollowerByID returns follower by ID
+func (r *Repository) GetFollowerByID(ctx context.Context, id string) (ApFollower, error) {
+	ctx, span := tracer.Start(ctx, "RepositoryGetFollowerByID")
+	defer span.End()
+
+	var follower ApFollower
+	result := r.db.WithContext(ctx).Where("id = ?", id).First(&follower)
+	return follower, result.Error
+}
+
+// UpdateFollow updates follow
+func (r *Repository) UpdateFollow(ctx context.Context, follow ApFollow) (ApFollow, error) {
+	ctx, span := tracer.Start(ctx, "RepositoryUpdateFollow")
+	defer span.End()
+
+	result := r.db.WithContext(ctx).Save(&follow)
+	return follow, result.Error
+}
+
+// GetAllFollows returns all Followers actions
+func (r *Repository) GetAllFollowers(ctx context.Context) ([]ApFollower, error) {
 	ctx, span := tracer.Start(ctx, "RepositoryGetAllFollows")
 	defer span.End()
 
-	var follows []ApFollow
-	err := r.db.WithContext(ctx).Find(&follows).Error
-	return follows, err
+	var followers []ApFollower
+	err := r.db.WithContext(ctx).Find(&followers).Error
+	return followers, err
 }
 
 // Remove Follow action
@@ -106,3 +173,22 @@ func (r *Repository) RemoveFollow(ctx context.Context, followID string) (ApFollo
 	}
 	return follow, nil
 }
+
+// Remove Follower action
+func (r *Repository) RemoveFollower(ctx context.Context, local, remote string) (ApFollower, error) {
+	ctx, span := tracer.Start(ctx, "RepositoryRemoveFollower")
+	defer span.End()
+
+	var follower ApFollower
+	err := r.db.WithContext(ctx).First(&follower, "publisher_user_id = ? AND subscriber_person_url = ?", local, remote).Error
+	if err != nil {
+		return ApFollower{}, err
+	}
+
+	err = r.db.WithContext(ctx).Where("publisher_user_id = ? AND subscriber_person_url = ?", local, remote).Delete(&ApFollower{}).Error
+	if err != nil {
+		return ApFollower{}, err
+	}
+	return follower, nil
+}
+

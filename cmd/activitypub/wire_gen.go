@@ -8,7 +8,7 @@ package main
 
 import (
 	"github.com/redis/go-redis/v9"
-	"github.com/totegamma/concurrent/x/activitypub"
+	"github.com/totegamma/ccworld-ap-bridge/x/activitypub"
 	"github.com/totegamma/concurrent/x/association"
 	"github.com/totegamma/concurrent/x/auth"
 	"github.com/totegamma/concurrent/x/domain"

@@ -21,7 +21,7 @@ func (h *Handler) Boot() {
 		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 		defer cancel()
 
-		jobs, err := h.repo.GetAllFollows(ctx)
+		jobs, err := h.repo.GetAllFollowers(ctx)
 		if err != nil {
 			log.Printf("error: %v", err)
 		}
@@ -44,7 +44,7 @@ func (h *Handler) Boot() {
 				pubsub := h.rdb.Subscribe(ctx)
 				pubsub.Subscribe(ctx, home)
 
-				go func(ctx context.Context, job ApFollow) {
+				go func(ctx context.Context, job ApFollower) {
 					for {
 						select {
 						case <-ctx.Done():
