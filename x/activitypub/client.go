@@ -1,7 +1,6 @@
 package activitypub
 
 import (
-	"log"
 	"bytes"
 	"context"
 	"crypto/x509"
@@ -12,9 +11,10 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/propagation"
 	"io/ioutil"
+	"log"
 	"net/http"
-	"time"
 	"strings"
+	"time"
 )
 
 // FetchPerson fetches a person from remote ap server.

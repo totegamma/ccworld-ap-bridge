@@ -118,7 +118,6 @@ func (r *Repository) GetFollowerByTuple(ctx context.Context, local, remote strin
 	return follower, result.Error
 }
 
-
 // GetFollowByID returns follow by ID
 func (r *Repository) GetFollowByID(ctx context.Context, id string) (ApFollow, error) {
 	ctx, span := tracer.Start(ctx, "RepositoryGetFollowByID")
@@ -191,4 +190,3 @@ func (r *Repository) RemoveFollower(ctx context.Context, local, remote string) (
 	}
 	return follower, nil
 }
-

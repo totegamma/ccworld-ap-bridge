@@ -249,10 +249,10 @@ func (h Handler) Inbox(c echo.Context) error {
 
 		// save follow
 		err = h.repo.SaveFollower(ctx, ApFollower{
-			ID:				object.ID,
-			SubscriberInbox: requester.Inbox,
+			ID:                  object.ID,
+			SubscriberInbox:     requester.Inbox,
 			SubscriberPersonURL: requester.ID,
-			PublisherUserID: userID,
+			PublisherUserID:     userID,
 		})
 		if err != nil {
 			span.RecordError(err)
@@ -329,79 +329,79 @@ func (h Handler) Inbox(c echo.Context) error {
 			return c.String(http.StatusBadRequest, "Invalid request body")
 		}
 		switch createType {
-			case "Note":
-				receiverID := c.Param("id")
-				if receiverID == "" {
-					return c.String(http.StatusBadRequest, "Invalid username")
-				}
+		case "Note":
+			receiverID := c.Param("id")
+			if receiverID == "" {
+				return c.String(http.StatusBadRequest, "Invalid username")
+			}
 
-				receiver, err := h.repo.GetEntityByID(ctx, receiverID)
-				if err != nil {
-					span.RecordError(err)
-					return c.String(http.StatusNotFound, "entity not found")
-				}
-				destStream := receiver.FollowStream
-				if destStream == "" {
-					log.Println("destStream is empty", receiver)
-					return c.String(http.StatusNotFound, "entity not found")
-				}
+			receiver, err := h.repo.GetEntityByID(ctx, receiverID)
+			if err != nil {
+				span.RecordError(err)
+				return c.String(http.StatusNotFound, "entity not found")
+			}
+			destStream := receiver.FollowStream
+			if destStream == "" {
+				log.Println("destStream is empty", receiver)
+				return c.String(http.StatusNotFound, "entity not found")
+			}
 
-				person, err := FetchPerson(ctx, object.Actor)
-				if err != nil {
-					span.RecordError(err)
-					return c.String(http.StatusBadRequest, "failed to fetch actor")
-				}
+			person, err := FetchPerson(ctx, object.Actor)
+			if err != nil {
+				span.RecordError(err)
+				return c.String(http.StatusBadRequest, "failed to fetch actor")
+			}
 
-				content, ok := createObject["content"].(string)
-				if !ok {
-					log.Println("Invalid create object", object.Object)
-					return c.String(http.StatusBadRequest, "Invalid request body")
-				}
+			content, ok := createObject["content"].(string)
+			if !ok {
+				log.Println("Invalid create object", object.Object)
+				return c.String(http.StatusBadRequest, "Invalid request body")
+			}
 
-				b := message.SignedObject{
-					Signer: h.apconfig.ProxyCCID,
-					Type:   "Message",
-					Schema: "https://raw.githubusercontent.com/totegamma/concurrent-schemas/master/messages/note/0.0.1.json",
-					Body:   map[string]interface{}{
-						"body": content,
-						"profileOverride": map[string]interface{}{
-							"username":    person.Name,
-							"avatar":      person.Icon.URL,
-							"description": person.Summary,
-							"link":        object.Actor,
-						},
+			b := message.SignedObject{
+				Signer: h.apconfig.ProxyCCID,
+				Type:   "Message",
+				Schema: "https://raw.githubusercontent.com/totegamma/concurrent-schemas/master/messages/note/0.0.1.json",
+				Body: map[string]interface{}{
+					"body": content,
+					"profileOverride": map[string]interface{}{
+						"username":    person.Name,
+						"avatar":      person.Icon.URL,
+						"description": person.Summary,
+						"link":        object.Actor,
 					},
-				}
+				},
+			}
 
-				objb, err := json.Marshal(b)
-				if err != nil {
-					span.RecordError(err)
-					return c.String(http.StatusInternalServerError, "Internal server error (json marshal error)")
-				}
+			objb, err := json.Marshal(b)
+			if err != nil {
+				span.RecordError(err)
+				return c.String(http.StatusInternalServerError, "Internal server error (json marshal error)")
+			}
 
-				objstr := string(objb)
-				objsig, err := util.SignBytes(objb, h.apconfig.ProxyPrivateKey)
-				if err != nil {
-					span.RecordError(err)
-					return c.String(http.StatusInternalServerError, "Internal server error (sign error)")
-				}
+			objstr := string(objb)
+			objsig, err := util.SignBytes(objb, h.apconfig.ProxyPrivateKey)
+			if err != nil {
+				span.RecordError(err)
+				return c.String(http.StatusInternalServerError, "Internal server error (sign error)")
+			}
 
-				_, err = h.message.PostMessage(ctx, objstr, objsig, []string{destStream})
-				if err != nil {
-					span.RecordError(err)
-					return c.String(http.StatusInternalServerError, "Internal server error (post message error)")
-				}
+			_, err = h.message.PostMessage(ctx, objstr, objsig, []string{destStream})
+			if err != nil {
+				span.RecordError(err)
+				return c.String(http.StatusInternalServerError, "Internal server error (post message error)")
+			}
 
-				return c.String(http.StatusOK, "note accepted")
-			default:
-				// print request body
-				b, err := json.Marshal(object)
-				if err != nil {
-					span.RecordError(err)
-					return c.String(http.StatusInternalServerError, "Internal server error (json marshal error)")
-				}
-				log.Println("Unhandled Create Object", string(b))
-				return c.String(http.StatusOK, "OK but not implemented")
+			return c.String(http.StatusOK, "note accepted")
+		default:
+			// print request body
+			b, err := json.Marshal(object)
+			if err != nil {
+				span.RecordError(err)
+				return c.String(http.StatusInternalServerError, "Internal server error (json marshal error)")
+			}
+			log.Println("Unhandled Create Object", string(b))
+			return c.String(http.StatusOK, "OK but not implemented")
 		}
 
 	case "Accept":
@@ -416,35 +416,35 @@ func (h Handler) Inbox(c echo.Context) error {
 			return c.String(http.StatusBadRequest, "Invalid request body")
 		}
 		switch acceptType {
-			case "Follow":
-				objectID, ok := acceptObject["id"].(string)
-				if !ok {
-					log.Println("Invalid accept object", object.Object)
-					return c.String(http.StatusBadRequest, "Invalid request body")
-				}
-				apFollow, err := h.repo.GetFollowByID(ctx, objectID)
-				if err != nil {
-					span.RecordError(err)
-					return c.String(http.StatusNotFound, "follow not found")
-				}
-				apFollow.Accepted = true
+		case "Follow":
+			objectID, ok := acceptObject["id"].(string)
+			if !ok {
+				log.Println("Invalid accept object", object.Object)
+				return c.String(http.StatusBadRequest, "Invalid request body")
+			}
+			apFollow, err := h.repo.GetFollowByID(ctx, objectID)
+			if err != nil {
+				span.RecordError(err)
+				return c.String(http.StatusNotFound, "follow not found")
+			}
+			apFollow.Accepted = true
 
-				_, err = h.repo.UpdateFollow(ctx, apFollow)
-				if err != nil {
-					span.RecordError(err)
-					return c.String(http.StatusInternalServerError, "Internal server error (update follow error)")
-				}
+			_, err = h.repo.UpdateFollow(ctx, apFollow)
+			if err != nil {
+				span.RecordError(err)
+				return c.String(http.StatusInternalServerError, "Internal server error (update follow error)")
+			}
 
-				return c.String(http.StatusOK, "follow accepted")
-			default:
-				// print request body
-				b, err := json.Marshal(object)
-				if err != nil {
-					span.RecordError(err)
-					return c.String(http.StatusInternalServerError, "Internal server error (json marshal error)")
-				}
-				log.Println("Unhandled accept object", string(b))
-				return c.String(http.StatusOK, "OK but not implemented")
+			return c.String(http.StatusOK, "follow accepted")
+		default:
+			// print request body
+			b, err := json.Marshal(object)
+			if err != nil {
+				span.RecordError(err)
+				return c.String(http.StatusInternalServerError, "Internal server error (json marshal error)")
+			}
+			log.Println("Unhandled accept object", string(b))
+			return c.String(http.StatusOK, "OK but not implemented")
 
 		}
 
@@ -474,7 +474,7 @@ func (h Handler) Inbox(c echo.Context) error {
 				return c.String(http.StatusBadRequest, "Invalid request body")
 			}
 
-			local := strings.TrimPrefix(obj, "https://" + h.config.Concurrent.FQDN + "/ap/acct/")
+			local := strings.TrimPrefix(obj, "https://"+h.config.Concurrent.FQDN+"/ap/acct/")
 
 			// check follow already deleted
 			_, err = h.repo.GetFollowerByTuple(ctx, local, remote)
@@ -567,7 +567,6 @@ func (h Handler) Follow(c echo.Context) error {
 	ctx, span := tracer.Start(c.Request().Context(), "Follow")
 	defer span.End()
 
-
 	claims := c.Get("jwtclaims").(util.JwtClaims)
 	ccid := claims.Audience
 	entity, err := h.repo.GetEntityByCCID(ctx, ccid)
@@ -604,7 +603,7 @@ func (h Handler) Follow(c echo.Context) error {
 	followObject := Object{
 		Context: "https://www.w3.org/ns/activitystreams",
 		Type:    "Follow",
-		Actor:	 "https://" + h.config.Concurrent.FQDN + "/ap/acct/" + entity.ID,
+		Actor:   "https://" + h.config.Concurrent.FQDN + "/ap/acct/" + entity.ID,
 		Object:  targetPerson,
 		ID:      followID,
 	}
@@ -615,10 +614,10 @@ func (h Handler) Follow(c echo.Context) error {
 		return c.String(http.StatusInternalServerError, "Internal server error")
 	}
 
-	follow := ApFollow {
-		ID:		followID,
-		PublisherPersonURL:	targetPerson.ID,
-		SubscriberUserID:	entity.ID,
+	follow := ApFollow{
+		ID:                 followID,
+		PublisherPersonURL: targetPerson.ID,
+		SubscriberUserID:   entity.ID,
 	}
 
 	err = h.repo.SaveFollow(ctx, follow)
@@ -664,17 +663,17 @@ func (h Handler) UnFollow(c echo.Context) error {
 		return c.String(http.StatusNotFound, "entity not found")
 	}
 
-	undoObject := Object {
+	undoObject := Object{
 		Context: "https://www.w3.org/ns/activitystreams",
-		Type:	 "Undo",
-		Actor:	 "https://" + h.config.Concurrent.FQDN + "/ap/acct/" + entity.ID,
-		ID:	     followID + "/undo",
-		Object: Object {
+		Type:    "Undo",
+		Actor:   "https://" + h.config.Concurrent.FQDN + "/ap/acct/" + entity.ID,
+		ID:      followID + "/undo",
+		Object: Object{
 			Context: "https://www.w3.org/ns/activitystreams",
-			Type:	 "Follow",
-			ID: followID,
-			Actor: "https://" + h.config.Concurrent.FQDN + "/ap/acct/" + entity.ID,
-			Object: targetPerson.ID,
+			Type:    "Follow",
+			ID:      followID,
+			Actor:   "https://" + h.config.Concurrent.FQDN + "/ap/acct/" + entity.ID,
+			Object:  targetPerson.ID,
 		},
 	}
 
@@ -759,13 +758,13 @@ func (h Handler) CreateEntity(c echo.Context) error {
 		})
 
 		created, err := h.repo.CreateEntity(ctx, ApEntity{
-			ID:         request.ID,
-			CCID:       ccid,
-			Publickey:  string(q),
-			Privatekey: string(p),
-			HomeStream: request.HomeStream,
+			ID:                 request.ID,
+			CCID:               ccid,
+			Publickey:          string(q),
+			Privatekey:         string(p),
+			HomeStream:         request.HomeStream,
 			NotificationStream: request.NotificationStream,
-			FollowStream: request.FollowStream,
+			FollowStream:       request.FollowStream,
 		})
 		if err != nil {
 			span.RecordError(err)
@@ -847,14 +846,13 @@ func (h Handler) GetStats(c echo.Context) error {
 		followers = append(followers, f.SubscriberPersonURL)
 	}
 
-	stats := ApAccountStats {
-		Follows: follows,
+	stats := ApAccountStats{
+		Follows:   follows,
 		Followers: followers,
 	}
 
 	return c.JSON(http.StatusOK, echo.Map{"status": "ok", "content": stats})
 }
-
 
 // NodeInfo handles nodeinfo requests
 func (h Handler) NodeInfo(c echo.Context) error {

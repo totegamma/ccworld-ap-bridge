@@ -10,13 +10,13 @@ import (
 
 // ApEntity is a db model of an ActivityPub entity.
 type ApEntity struct {
-	ID         string `json:"id" gorm:"type:text"`
-	CCID       string `json:"ccid" gorm:"type:char(42)"`
-	Publickey  string `json:"publickey" gorm:"type:text"`
-	Privatekey string `json:"privatekey" gorm:"type:text"`
-	HomeStream string `json:"homestream" gorm:"type:text"`
+	ID                 string `json:"id" gorm:"type:text"`
+	CCID               string `json:"ccid" gorm:"type:char(42)"`
+	Publickey          string `json:"publickey" gorm:"type:text"`
+	Privatekey         string `json:"privatekey" gorm:"type:text"`
+	HomeStream         string `json:"homestream" gorm:"type:text"`
 	NotificationStream string `json:"notificationstream" gorm:"type:text"`
-	FollowStream string `json:"followstream" gorm:"type:text"`
+	FollowStream       string `json:"followstream" gorm:"type:text"`
 }
 
 // ApPerson is a db model of an ActivityPub entity.
@@ -31,19 +31,19 @@ type ApPerson struct {
 // ApFollow is a db model of an ActivityPub follow.
 // Concurrent -> Activitypub
 type ApFollow struct {
-	ID              string `json:"id" gorm:"type:text"`
-	Accepted		bool   `json:"accepted" gorm:"type:bool"`
-	PublisherPersonURL string `json:"publisher" gorm:"type:text"` // ActivityPub Person
-	SubscriberUserID string `json:"subscriber" gorm:"type:text"` // Concurrent APID
+	ID                 string `json:"id" gorm:"type:text"`
+	Accepted           bool   `json:"accepted" gorm:"type:bool"`
+	PublisherPersonURL string `json:"publisher" gorm:"type:text"`  // ActivityPub Person
+	SubscriberUserID   string `json:"subscriber" gorm:"type:text"` // Concurrent APID
 }
 
 // ApFollwer is a db model of an ActivityPub follower.
 // Activitypub -> Concurrent
 type ApFollower struct {
-	ID              string `json:"id" gorm:"type:text"`
+	ID                  string `json:"id" gorm:"type:text"`
 	SubscriberPersonURL string `json:"subscriber" gorm:"type:text;uniqueIndex:uniq_apfollower;"` // ActivityPub Person
-	PublisherUserID string `json:"publisher" gorm:"type:text;uniqueIndex:uniq_apfollower;"` // Concurrent APID
-	SubscriberInbox string `json:"subscriber_inbox" gorm:"type:text"` // ActivityPub Inbox
+	PublisherUserID     string `json:"publisher" gorm:"type:text;uniqueIndex:uniq_apfollower;"`  // Concurrent APID
+	SubscriberInbox     string `json:"subscriber_inbox" gorm:"type:text"`                        // ActivityPub Inbox
 }
 
 // WellKnown is a struct for a well-known response.
@@ -144,10 +144,10 @@ type Accept struct {
 
 // CreateEntityRequest is a struct for a request to create an entity.
 type CreateEntityRequest struct {
-	ID string `json:"id"`
-	HomeStream string `json:"homestream" gorm:"type:text"`
+	ID                 string `json:"id"`
+	HomeStream         string `json:"homestream" gorm:"type:text"`
 	NotificationStream string `json:"notificationstream" gorm:"type:text"`
-	FollowStream string `json:"followstream" gorm:"type:text"`
+	FollowStream       string `json:"followstream" gorm:"type:text"`
 }
 
 type ApAccountStats struct {
