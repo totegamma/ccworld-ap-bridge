@@ -131,7 +131,7 @@ func (h Handler) User(c echo.Context) error {
 			URL:       person.IconURL,
 		},
 		PublicKey: Key{
-			ID:           "https://" + h.config.Concurrent.FQDN + "/ap/key/" + id,
+			ID:           "https://" + h.config.Concurrent.FQDN + "/ap/acct/" + id + "#main-key",
 			Type:         "Key",
 			Owner:        "https://" + h.config.Concurrent.FQDN + "/ap/acct/" + id,
 			PublicKeyPem: entity.Publickey,
