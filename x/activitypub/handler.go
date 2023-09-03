@@ -14,13 +14,13 @@ import (
 	"github.com/totegamma/concurrent/x/message"
 	"github.com/totegamma/concurrent/x/util"
 	"go.opentelemetry.io/otel"
+	"golang.org/x/exp/slices"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
-	"golang.org/x/exp/slices"
 )
 
 var tracer = otel.Tracer("activitypub")
@@ -129,7 +129,7 @@ func (h Handler) User(c echo.Context) error {
 		PreferredUsername: id,
 		Name:              person.Name,
 		Summary:           person.Summary,
-		URL:			   "https://" + h.config.Concurrent.FQDN + "/ap/acct/" + id,
+		URL:               "https://" + h.config.Concurrent.FQDN + "/ap/acct/" + id,
 		Icon: Icon{
 			Type:      "Image",
 			MediaType: "image/png",
