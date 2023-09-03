@@ -109,6 +109,13 @@ func (h Handler) User(c echo.Context) error {
 		return c.String(http.StatusNotFound, "person not found")
 	}
 
+	// check if accept is application/activity+json or application/ld+json
+	accept := c.Request().Header.Get("Accept")
+	if accept != "application/activity+json" && accept != "application/ld+json" {
+		// redirect to user page
+		return c.Redirect(http.StatusFound, "https://concurrent.world/entity/"+entity.CCID)
+	}
+
 	return c.JSON(http.StatusOK, Person{
 		Context:           "https://www.w3.org/ns/activitystreams",
 		Type:              "Person",
@@ -118,7 +125,6 @@ func (h Handler) User(c echo.Context) error {
 		PreferredUsername: id,
 		Name:              person.Name,
 		Summary:           person.Summary,
-		URL:               person.ProfileURL,
 		Icon: Icon{
 			Type:      "Image",
 			MediaType: "image/png",
@@ -172,6 +178,13 @@ func (h Handler) Note(c echo.Context) error {
 		text = t
 	} else {
 		return c.String(http.StatusNotImplemented, "target message is not implemented for activitypub")
+	}
+
+	// check if accept is application/activity+json or application/ld+json
+	accept := c.Request().Header.Get("Accept")
+	if accept != "application/activity+json" && accept != "application/ld+json" {
+		// redirect to user page
+		return c.Redirect(http.StatusFound, "https://concurrent.world/message/"+id+"@"+msg.Author)
 	}
 
 	return c.JSON(http.StatusOK, Note{

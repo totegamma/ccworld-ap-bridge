@@ -24,7 +24,6 @@ type ApPerson struct {
 	ID         string `json:"id" gorm:"type:text"`
 	Name       string `json:"name" gorm:"type:text"`
 	Summary    string `json:"summary" gorm:"type:text"`
-	ProfileURL string `json:"profile_url" gorm:"type:text"`
 	IconURL    string `json:"icon_url" gorm:"type:text"`
 }
 
