@@ -129,6 +129,7 @@ func (h Handler) User(c echo.Context) error {
 		PreferredUsername: id,
 		Name:              person.Name,
 		Summary:           person.Summary,
+		URL:			   "https://" + h.config.Concurrent.FQDN + "/ap/acct/" + id,
 		Icon: Icon{
 			Type:      "Image",
 			MediaType: "image/png",

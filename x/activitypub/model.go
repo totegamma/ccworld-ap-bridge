@@ -83,6 +83,7 @@ type Person struct {
 	PreferredUsername string      `json:"preferredUsername"`
 	Name              string      `json:"name"`
 	Summary           string      `json:"summary"`
+	URL               string      `json:"url"`
 	Icon              Icon        `json:"icon"`
 	PublicKey         Key         `json:"publicKey"`
 }
