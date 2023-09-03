@@ -144,6 +144,7 @@ func main() {
 	ap := e.Group("/ap")
 	ap.GET("/nodeinfo/2.0", activitypubHandler.NodeInfo)
 	ap.GET("/acct/:id", activitypubHandler.User)
+	ap.GET("/key/:id", activitypubHandler.User) // for backward compatibility
 	ap.POST("/acct/:id/inbox", activitypubHandler.Inbox)
 	ap.POST("/acct/:id/outbox", activitypubHandler.PrintRequest)
 	ap.GET("/note/:id", activitypubHandler.Note)
