@@ -118,13 +118,12 @@ func (h Handler) PostToInbox(ctx context.Context, inbox string, object interface
 		return fmt.Errorf("failed to parse PEM block containing the key")
 	}
 
-	// parse ed25519 private key
-	priv, err := x509.ParsePKCS8PrivateKey(block.Bytes)
+	priv, err := x509.ParsePKCS1PrivateKey(block.Bytes)
 	if err != nil {
 		return fmt.Errorf("failed to parse DER encoded private key: " + err.Error())
 	}
 
-	prefs := []httpsig.Algorithm{httpsig.ED25519}
+	prefs := []httpsig.Algorithm{httpsig.RSA_SHA256}
 	digestAlgorithm := httpsig.DigestSha256
 	headersToSign := []string{httpsig.RequestTarget, "date", "digest"}
 	signer, _, err := httpsig.NewSigner(prefs, digestAlgorithm, headersToSign, httpsig.Signature, 0)
@@ -132,7 +131,7 @@ func (h Handler) PostToInbox(ctx context.Context, inbox string, object interface
 		log.Println(err)
 		return err
 	}
-	err = signer.SignRequest(priv, "https://"+h.config.Concurrent.FQDN+"/ap/key/"+signUser, req, objectBytes)
+	err = signer.SignRequest(priv, "https://"+h.config.Concurrent.FQDN+"/ap/acct/"+signUser+"#main-key", req, objectBytes)
 
 	resp, err := client.Do(req)
 	if err != nil {

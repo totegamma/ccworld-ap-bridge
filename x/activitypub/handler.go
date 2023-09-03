@@ -2,7 +2,8 @@
 package activitypub
 
 import (
-	"crypto/ed25519"
+	"crypto/rand"
+	"crypto/rsa"
 	"crypto/x509"
 	"encoding/json"
 	"encoding/pem"
@@ -19,6 +20,7 @@ import (
 	"net/url"
 	"strings"
 	"time"
+	"golang.org/x/exp/slices"
 )
 
 var tracer = otel.Tracer("activitypub")
@@ -110,8 +112,10 @@ func (h Handler) User(c echo.Context) error {
 	}
 
 	// check if accept is application/activity+json or application/ld+json
-	accept := c.Request().Header.Get("Accept")
-	if accept != "application/activity+json" && accept != "application/ld+json" {
+	acceptHeader := c.Request().Header.Get("Accept")
+	accept := strings.Split(acceptHeader, ",")
+
+	if !slices.Contains(accept, "application/activity+json") && !slices.Contains(accept, "application/ld+json") {
 		// redirect to user page
 		return c.Redirect(http.StatusFound, "https://concurrent.world/entity/"+entity.CCID)
 	}
@@ -181,8 +185,10 @@ func (h Handler) Note(c echo.Context) error {
 	}
 
 	// check if accept is application/activity+json or application/ld+json
-	accept := c.Request().Header.Get("Accept")
-	if accept != "application/activity+json" && accept != "application/ld+json" {
+	acceptHeader := c.Request().Header.Get("Accept")
+	accept := strings.Split(acceptHeader, ",")
+
+	if !slices.Contains(accept, "application/activity+json") && !slices.Contains(accept, "application/ld+json") {
 		// redirect to user page
 		return c.Redirect(http.StatusFound, "https://concurrent.world/message/"+id+"@"+msg.Author)
 	}
@@ -611,15 +617,25 @@ func (h Handler) Follow(c echo.Context) error {
 		return c.String(http.StatusNotFound, "entity not found")
 	}
 
-	followID := "https://" + h.config.Concurrent.FQDN + "/follow/" + entity.ID + "/" + targetID
+	simpleID := strings.Replace(targetID, "@", "-", -1)
+	simpleID = strings.Replace(simpleID, ".", "-", -1)
+	followID := "https://" + h.config.Concurrent.FQDN + "/follow/" + entity.ID + "/" + simpleID
 
 	followObject := Object{
 		Context: "https://www.w3.org/ns/activitystreams",
 		Type:    "Follow",
 		Actor:   "https://" + h.config.Concurrent.FQDN + "/ap/acct/" + entity.ID,
-		Object:  targetPerson,
+		Object:  targetPerson.ID,
 		ID:      followID,
 	}
+
+	// debug: print follow object
+	b, err := json.Marshal(followObject)
+	if err != nil {
+		span.RecordError(err)
+		return c.String(http.StatusInternalServerError, "Internal server error (json marshal error)")
+	}
+	log.Println("Follow Object", string(b))
 
 	err = h.PostToInbox(ctx, targetPerson.Inbox, followObject, entity.ID)
 	if err != nil {
@@ -661,7 +677,9 @@ func (h Handler) UnFollow(c echo.Context) error {
 		targetID = "@" + targetID
 	}
 
-	followID := "https://" + h.config.Concurrent.FQDN + "/follow/" + entity.ID + "/" + targetID
+	simpleID := strings.Replace(targetID, "@", "-", -1)
+	simpleID = strings.Replace(simpleID, ".", "-", -1)
+	followID := "https://" + h.config.Concurrent.FQDN + "/follow/" + entity.ID + "/" + simpleID
 	log.Println("unfollow", followID)
 
 	targetActor, err := ResolveActor(ctx, targetID)
@@ -745,36 +763,39 @@ func (h Handler) CreateEntity(c echo.Context) error {
 
 		return c.JSON(http.StatusOK, echo.Map{"status": "ok", "content": updated})
 	} else { // Create
-		// create ed25519 keypair
-		pub, priv, err := ed25519.GenerateKey(nil)
 
-		qb, err := x509.MarshalPKIXPublicKey(pub)
+		// RSAキーペアの生成
+		privKey, err := rsa.GenerateKey(rand.Reader, 2048)
 		if err != nil {
-			span.RecordError(err)
-			return err
+			panic(err)
 		}
 
-		q := pem.EncodeToMemory(&pem.Block{
-			Type:  "PUBLIC KEY",
-			Bytes: qb,
-		})
+		// 秘密鍵をPEM形式に変換
+		privKeyBytes := x509.MarshalPKCS1PrivateKey(privKey)
+		privKeyPEM := pem.EncodeToMemory(
+			&pem.Block{
+				Type:  "RSA PRIVATE KEY",
+				Bytes: privKeyBytes,
+			},
+		)
 
-		pb, err := x509.MarshalPKCS8PrivateKey(priv)
+		// 公開鍵をPEM形式に変換
+		pubKeyBytes, err := x509.MarshalPKIXPublicKey(&privKey.PublicKey)
 		if err != nil {
-			span.RecordError(err)
-			return err
+			panic(err)
 		}
-
-		p := pem.EncodeToMemory(&pem.Block{
-			Type:  "PRIVATE KEY",
-			Bytes: pb,
-		})
+		pubKeyPEM := pem.EncodeToMemory(
+			&pem.Block{
+				Type:  "PUBLIC KEY",
+				Bytes: pubKeyBytes,
+			},
+		)
 
 		created, err := h.repo.CreateEntity(ctx, ApEntity{
 			ID:                 request.ID,
 			CCID:               ccid,
-			Publickey:          string(q),
-			Privatekey:         string(p),
+			Publickey:          string(pubKeyPEM),
+			Privatekey:         string(privKeyPEM),
 			HomeStream:         request.HomeStream,
 			NotificationStream: request.NotificationStream,
 			FollowStream:       request.FollowStream,
