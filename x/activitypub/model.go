@@ -115,13 +115,21 @@ type Create struct {
 
 // Object is a struct for an ActivityPub object.
 type Object struct {
-	Context interface{} `json:"@context"`
-	Type    string      `json:"type"`
-	ID      string      `json:"id"`
-	Content string      `json:"content"`
-	Actor   string      `json:"actor"`
-	Object  interface{} `json:"object"`
-	Tag     []Tag       `json:"tag"`
+	Context    interface{}  `json:"@context"`
+	Type       string       `json:"type"`
+	ID         string       `json:"id"`
+	Content    string       `json:"content"`
+	Actor      string       `json:"actor"`
+	Object     interface{}  `json:"object"`
+	Attachment []Attachment `json:"attachment"`
+	Tag        []Tag        `json:"tag"`
+}
+
+// Attachment is a struct for an ActivityPub attachment.
+type Attachment struct {
+	Type      string `json:"type"`
+	MediaType string `json:"mediaType"`
+	URL       string `json:"url"`
 }
 
 // Tag is a struct for an ActivityPub tag.
@@ -196,7 +204,7 @@ type NodeInfoMetadataMaintainer struct {
 }
 
 type WorldEmoji struct {
-	imageURL string
+	ImageURL string `json:"imageURL"`
 }
 
 type APConfig struct {

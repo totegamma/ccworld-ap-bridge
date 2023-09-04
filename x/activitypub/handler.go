@@ -378,6 +378,68 @@ func (h Handler) Inbox(c echo.Context) error {
 				return c.String(http.StatusBadRequest, "Invalid request body")
 			}
 
+			attachments, ok := createObject["attachment"].([]interface{})
+			if ok {
+				for _, attachment := range attachments {
+					attachment, ok := attachment.(map[string]interface{})
+					if !ok {
+						continue
+					}
+					atype, ok := attachment["type"].(string)
+					if !ok {
+						continue
+					}
+					aurl, ok := attachment["url"].(string)
+					if !ok {
+						continue
+					}
+					if atype == "Document" {
+						content += "\n\n![image](" + aurl + ")"
+					}
+				}
+			}
+
+			var emojis map[string]WorldEmoji = make(map[string]WorldEmoji)
+			tags, ok := createObject["tag"].([]interface{})
+			if ok {
+				for _, tag := range tags {
+					tag, ok := tag.(map[string]interface{})
+					if !ok {
+						continue
+					}
+					tagtype, ok := tag["type"].(string)
+					if !ok {
+						continue
+					}
+					if tagtype == "Emoji" {
+						name, ok := tag["name"].(string)
+						if !ok {
+							continue
+						}
+						name = strings.Trim(name, ":")
+						icon, ok := tag["icon"].(map[string]interface{})
+						if !ok {
+							continue
+						}
+						url, ok := icon["url"].(string)
+						if !ok {
+							continue
+						}
+						emojis[name] = WorldEmoji{
+							ImageURL: url,
+						}
+					}
+				}
+			}
+
+			if len(content) == 0 {
+				return c.String(http.StatusOK, "empty note")
+			}
+
+			if len(content) > 4096 {
+				return c.String(http.StatusOK, "note too long")
+			}
+
 			b := message.SignedObject{
 				Signer: h.apconfig.ProxyCCID,
 				Type:   "Message",
@@ -390,6 +452,7 @@ func (h Handler) Inbox(c echo.Context) error {
 						"description": person.Summary,
 						"link":        object.Actor,
 					},
+					"emojis": emojis,
 				},
 			}
 
