@@ -286,53 +286,76 @@ func (h Handler) Inbox(c echo.Context) error {
 		_, err := h.message.Get(ctx, targetID)
 		if err != nil {
 			span.RecordError(err)
-			return c.String(http.StatusNotFound, "message not found")
+			return c.String(http.StatusOK, "message not found")
 		}
 
 		person, err := FetchPerson(ctx, object.Actor)
 		if err != nil {
 			span.RecordError(err)
-			return c.String(http.StatusBadRequest, "failed to fetch actor")
+			return c.String(http.StatusOK, "failed to fetch actor")
 		}
 
-		b := association.SignedObject{
-			Signer: h.apconfig.ProxyCCID,
-			Type:   "Association",
-			Schema: "https://raw.githubusercontent.com/totegamma/concurrent-schemas/master/associations/emoji/0.0.1.json",
-			Body: map[string]interface{}{
-				"shortcode": object.Tag[0].Name,
-				"imageUrl":  object.Tag[0].Icon.URL,
-				"profileOverride": map[string]interface{}{
-					"username":    person.Name,
-					"avatar":      person.Icon.URL,
-					"description": person.Summary,
-					"link":        object.Actor,
+		var obj association.SignedObject
+
+		if (object.Tag == nil) || (object.Tag[0].Name[0] != ':') {
+			obj = association.SignedObject{
+				Signer: h.apconfig.ProxyCCID,
+				Type:   "Association",
+				Schema: "https://raw.githubusercontent.com/totegamma/concurrent-schemas/master/associations/like/0.0.1.json",
+				Body: map[string]interface{}{
+					"profileOverride": map[string]interface{}{
+						"username":    person.Name,
+						"avatar":      person.Icon.URL,
+						"description": person.Summary,
+						"link":        object.Actor,
+					},
 				},
-			},
-			Meta: map[string]interface{}{
-				"apActor": object.Actor,
-			},
-			SignedAt: time.Now(),
-			Target:   targetID,
+				Meta: map[string]interface{}{
+					"apActor": object.Actor,
+				},
+				SignedAt: time.Now(),
+				Target:   targetID,
+			}
+		} else {
+			obj = association.SignedObject{
+				Signer: h.apconfig.ProxyCCID,
+				Type:   "Association",
+				Schema: "https://raw.githubusercontent.com/totegamma/concurrent-schemas/master/associations/emoji/0.0.1.json",
+				Body: map[string]interface{}{
+					"shortcode": object.Tag[0].Name,
+					"imageUrl":  object.Tag[0].Icon.URL,
+					"profileOverride": map[string]interface{}{
+						"username":    person.Name,
+						"avatar":      person.Icon.URL,
+						"description": person.Summary,
+						"link":        object.Actor,
+					},
+				},
+				Meta: map[string]interface{}{
+					"apActor": object.Actor,
+				},
+				SignedAt: time.Now(),
+				Target:   targetID,
+			}
 		}
 
-		objb, err := json.Marshal(b)
+		objb, err := json.Marshal(obj)
 		if err != nil {
 			span.RecordError(err)
-			return c.String(http.StatusInternalServerError, "Internal server error (json marshal error)")
+			return c.String(http.StatusOK, "Internal server error (json marshal error)")
 		}
 
 		objstr := string(objb)
 		objsig, err := util.SignBytes(objb, h.apconfig.ProxyPrivateKey)
 		if err != nil {
 			span.RecordError(err)
-			return c.String(http.StatusInternalServerError, "Internal server error (sign error)")
+			return c.String(http.StatusOK, "Internal server error (sign error)")
 		}
 
 		_, err = h.association.PostAssociation(ctx, objstr, objsig, []string{}, "messages")
 		if err != nil {
 			span.RecordError(err)
-			return c.String(http.StatusInternalServerError, "Internal server error (post association error)")
+			return c.String(http.StatusOK, "Internal server error (post association error)")
 		}
 
 		return c.String(http.StatusOK, "like accepted")
