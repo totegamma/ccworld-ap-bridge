@@ -172,6 +172,7 @@ type Note struct {
 	Published    string      `json:"published"`
 	To           []string    `json:"to"`
 	Tag          []Tag       `json:"tag"`
+	Attachment []Attachment `json:"attachment"`
 }
 
 // NodeInfo is a struct for a NodeInfo response.

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"log"
 	"time"
+	"regexp"
 
 	"github.com/totegamma/concurrent/x/association"
 	"github.com/totegamma/concurrent/x/message"
@@ -88,11 +89,22 @@ func (h *Handler) StartMessageWorker() {
 
 							var text string
 							var emojis []Tag
+							var images []string
 							if signedObject.Schema == "https://raw.githubusercontent.com/totegamma/concurrent-schemas/master/messages/note/0.0.1.json" {
 								t, ok := body.(map[string]interface{})["body"].(string)
 								if ok {
 									text = t
 								}
+
+								// extract image url of markdown notation
+								imagePattern := regexp.MustCompile(`!\[.*\]\((.*)\)`)
+								matches := imagePattern.FindAllStringSubmatch(text, -1)
+								for _, match := range matches {
+									images = append(images, match[1])
+								}
+
+								// remove markdown notation
+								text = imagePattern.ReplaceAllString(text, "")
 
 								e, ok := body.(map[string]interface{})["emojis"].(map[string]interface{})
 								if ok {
@@ -118,6 +130,16 @@ func (h *Handler) StartMessageWorker() {
 								continue
 							}
 
+							attachments := []Attachment{}
+							for _, imageURL := range images {
+								attachment := Attachment{
+									Type: "Document",
+									MediaType: "image/png",
+									URL: imageURL,
+								}
+								attachments = append(attachments, attachment)
+							}
+
 							create := Create{
 								Context: []string{"https://www.w3.org/ns/activitystreams"},
 								Type:    "Create",
@@ -133,6 +155,7 @@ func (h *Handler) StartMessageWorker() {
 									Published:    msg.CDate.Format(time.RFC3339),
 									To:           []string{"https://www.w3.org/ns/activitystreams#Public"},
 									Tag:          emojis,
+									Attachment:   attachments,
 								},
 							}
 
