@@ -371,6 +371,11 @@ func (h Handler) Inbox(c echo.Context) error {
 			log.Println("Invalid create object", object.Object)
 			return c.String(http.StatusBadRequest, "Invalid request body")
 		}
+		createID, ok := createObject["id"].(string)
+		if !ok {
+			log.Println("Invalid create object", object.Object)
+			return c.String(http.StatusBadRequest, "Invalid request body")
+		}
 		switch createType {
 		case "Note":
 			receiverID := c.Param("id")
@@ -479,7 +484,7 @@ func (h Handler) Inbox(c echo.Context) error {
 				},
 				Meta: map[string]interface{}{
 					"apActor": object.Actor,
-					"apObjectRef": object.ID,
+					"apObjectRef": createID,
 					"apPublisherInbox": person.Inbox,
 				},
 			}
