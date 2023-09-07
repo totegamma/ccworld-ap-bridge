@@ -4,8 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"log"
-	"time"
 	"regexp"
+	"time"
 
 	"github.com/totegamma/concurrent/x/association"
 	"github.com/totegamma/concurrent/x/message"
@@ -133,9 +133,9 @@ func (h *Handler) StartMessageWorker() {
 							attachments := []Attachment{}
 							for _, imageURL := range images {
 								attachment := Attachment{
-									Type: "Document",
+									Type:      "Document",
 									MediaType: "image/png",
-									URL: imageURL,
+									URL:       imageURL,
 								}
 								attachments = append(attachments, attachment)
 							}
@@ -236,7 +236,6 @@ func (h *Handler) StartAssociationWorker(notificationStream string) {
 			continue
 		}
 
-
 		msg, err := h.message.Get(ctx, ass.TargetID)
 		if err != nil {
 			log.Printf("error: %v", err)
@@ -263,7 +262,7 @@ func (h *Handler) StartAssociationWorker(notificationStream string) {
 		}
 
 		if associationObj.Schema == "https://raw.githubusercontent.com/totegamma/concurrent-schemas/master/associations/like/0.0.1.json" ||
-		   associationObj.Schema == "https://raw.githubusercontent.com/totegamma/concurrent-schemas/master/associations/emoji/0.0.1.json" { // Like or Emoji
+			associationObj.Schema == "https://raw.githubusercontent.com/totegamma/concurrent-schemas/master/associations/emoji/0.0.1.json" { // Like or Emoji
 			shortcode, ok := body["shortcode"].(string)
 			if ok {
 				shortcode = ":" + shortcode + ":"
@@ -277,12 +276,12 @@ func (h *Handler) StartAssociationWorker(notificationStream string) {
 				tag = []Tag{
 					{
 						Type: "Emoji",
-						ID: imageUrl,
+						ID:   imageUrl,
 						Name: shortcode,
-						Icon: Icon {
-							Type: "Image",
+						Icon: Icon{
+							Type:      "Image",
 							MediaType: "image/png",
-							URL: imageUrl,
+							URL:       imageUrl,
 						},
 					},
 				}
@@ -290,12 +289,12 @@ func (h *Handler) StartAssociationWorker(notificationStream string) {
 
 			create := Object{
 				Context: []string{"https://www.w3.org/ns/activitystreams"},
-				Type:         "Like",
-				ID:           "https://" + h.config.Concurrent.FQDN + "/ap/likes/" + ass.ID,
-				Actor:        "https://" + h.config.Concurrent.FQDN + "/ap/acct/" + assauthor.ID,
-				Content:      shortcode,
-				Tag:          tag,
-				Object: ref,
+				Type:    "Like",
+				ID:      "https://" + h.config.Concurrent.FQDN + "/ap/likes/" + ass.ID,
+				Actor:   "https://" + h.config.Concurrent.FQDN + "/ap/acct/" + assauthor.ID,
+				Content: shortcode,
+				Tag:     tag,
+				Object:  ref,
 			}
 
 			err = h.PostToInbox(ctx, dest, create, assauthor.ID)

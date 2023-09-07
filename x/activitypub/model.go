@@ -164,15 +164,15 @@ type ApAccountStats struct {
 
 // Note is a struct for a note.
 type Note struct {
-	Context      interface{} `json:"@context"`
-	Type         string      `json:"type"`
-	ID           string      `json:"id"`
-	AttributedTo string      `json:"attributedTo"`
-	Content      string      `json:"content"`
-	Published    string      `json:"published"`
-	To           []string    `json:"to"`
-	Tag          []Tag       `json:"tag"`
-	Attachment []Attachment `json:"attachment"`
+	Context      interface{}  `json:"@context"`
+	Type         string       `json:"type"`
+	ID           string       `json:"id"`
+	AttributedTo string       `json:"attributedTo"`
+	Content      string       `json:"content"`
+	Published    string       `json:"published"`
+	To           []string     `json:"to"`
+	Tag          []Tag        `json:"tag"`
+	Attachment   []Attachment `json:"attachment"`
 }
 
 // NodeInfo is a struct for a NodeInfo response.
@@ -209,7 +209,7 @@ type WorldEmoji struct {
 }
 
 type ProxySettings struct {
-	PrivateKey string `yaml:"privateKey"`
+	PrivateKey         string `yaml:"privateKey"`
 	NotificationStream string `yaml:"notificationStream"`
 }
 

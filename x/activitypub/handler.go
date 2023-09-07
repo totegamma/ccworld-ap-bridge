@@ -483,8 +483,8 @@ func (h Handler) Inbox(c echo.Context) error {
 					"emojis": emojis,
 				},
 				Meta: map[string]interface{}{
-					"apActor": object.Actor,
-					"apObjectRef": createID,
+					"apActor":          object.Actor,
+					"apObjectRef":      createID,
 					"apPublisherInbox": person.Inbox,
 				},
 			}
