@@ -177,7 +177,8 @@ func main() {
 
 	e.GET("/metrics", echoprometheus.NewHandler())
 
-	go activitypubHandler.Boot()
+	go activitypubHandler.StartMessageWorker()
+	go activitypubHandler.StartAssociationWorker(apConf.Proxy.NotificationStream)
 
 	e.Logger.Fatal(e.Start(":8000"))
 }

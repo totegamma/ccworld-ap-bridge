@@ -17,6 +17,7 @@ require (
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp v1.17.0
 	go.opentelemetry.io/otel/sdk v1.17.0
 	go.uber.org/mock v0.2.0
+	golang.org/x/exp v0.0.0-20230810033253-352e893a4cad
 	gorm.io/driver/postgres v1.5.2
 	gorm.io/gorm v1.25.4
 	gorm.io/plugin/opentelemetry v0.1.3
@@ -66,7 +67,6 @@ require (
 	go.opentelemetry.io/otel/trace v1.17.0 // indirect
 	go.opentelemetry.io/proto/otlp v1.0.0 // indirect
 	golang.org/x/crypto v0.12.0 // indirect
-	golang.org/x/exp v0.0.0-20230810033253-352e893a4cad // indirect
 	golang.org/x/mod v0.11.0 // indirect
 	golang.org/x/net v0.14.0 // indirect
 	golang.org/x/sys v0.11.0 // indirect

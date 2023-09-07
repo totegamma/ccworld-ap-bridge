@@ -207,8 +207,13 @@ type WorldEmoji struct {
 	ImageURL string `json:"imageURL"`
 }
 
+type ProxySettings struct {
+	PrivateKey string `yaml:"privateKey"`
+	NotificationStream string `yaml:"notificationStream"`
+}
+
 type APConfig struct {
-	ProxyPrivateKey string `yaml:"workerPrivateKey"`
+	Proxy ProxySettings `yaml:"proxy"`
 
 	// internal generated
 	ProxyCCID      string
@@ -231,7 +236,7 @@ func (c *APConfig) Load(path string) error {
 	}
 
 	// generate worker public key
-	proxyPrivateKey, err := crypto.HexToECDSA(c.ProxyPrivateKey)
+	proxyPrivateKey, err := crypto.HexToECDSA(c.Proxy.PrivateKey)
 	if err != nil {
 		log.Fatal("failed to parse worker private key:", err)
 		return err

@@ -346,7 +346,7 @@ func (h Handler) Inbox(c echo.Context) error {
 		}
 
 		objstr := string(objb)
-		objsig, err := util.SignBytes(objb, h.apconfig.ProxyPrivateKey)
+		objsig, err := util.SignBytes(objb, h.apconfig.Proxy.PrivateKey)
 		if err != nil {
 			span.RecordError(err)
 			return c.String(http.StatusOK, "Internal server error (sign error)")
@@ -477,6 +477,11 @@ func (h Handler) Inbox(c echo.Context) error {
 					},
 					"emojis": emojis,
 				},
+				Meta: map[string]interface{}{
+					"apActor": object.Actor,
+					"apObjectRef": object.ID,
+					"apPublisherInbox": person.Inbox,
+				},
 			}
 
 			objb, err := json.Marshal(b)
@@ -486,7 +491,7 @@ func (h Handler) Inbox(c echo.Context) error {
 			}
 
 			objstr := string(objb)
-			objsig, err := util.SignBytes(objb, h.apconfig.ProxyPrivateKey)
+			objsig, err := util.SignBytes(objb, h.apconfig.Proxy.PrivateKey)
 			if err != nil {
 				span.RecordError(err)
 				return c.String(http.StatusInternalServerError, "Internal server error (sign error)")

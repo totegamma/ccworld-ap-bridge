@@ -6,12 +6,12 @@ import (
 	"log"
 	"time"
 
+	"github.com/totegamma/concurrent/x/association"
 	"github.com/totegamma/concurrent/x/message"
 	"github.com/totegamma/concurrent/x/stream"
 )
 
-// Boot starts agent
-func (h *Handler) Boot() {
+func (h *Handler) StartMessageWorker() {
 
 	ticker10 := time.NewTicker(10 * time.Second)
 	workers := make(map[string]context.CancelFunc)
@@ -159,6 +159,130 @@ func (h *Handler) Boot() {
 				cancel()
 				delete(workers, routineID)
 			}
+		}
+	}
+}
+
+func (h *Handler) StartAssociationWorker(notificationStream string) {
+
+	ctx := context.Background()
+	pubsub := h.rdb.Subscribe(ctx)
+	pubsub.Subscribe(ctx, notificationStream)
+
+	for {
+		pubsubMsg, err := pubsub.ReceiveMessage(ctx)
+		if err != nil {
+			log.Printf("error: %v", err)
+			continue
+		}
+
+		log.Printf("received association: %v", pubsubMsg.Payload)
+
+		var streamEvent stream.Event
+		err = json.Unmarshal([]byte(pubsubMsg.Payload), &streamEvent)
+		if err != nil {
+			log.Printf("error: %v", err)
+			continue
+		}
+
+		ass, err := h.association.Get(ctx, streamEvent.Body.ID)
+		if err != nil {
+			log.Printf("error: %v", err)
+		}
+
+		if ass.TargetType != "messages" {
+			continue
+		}
+
+		assauthor, err := h.repo.GetEntityByCCID(ctx, ass.Author)
+		if err != nil {
+			log.Printf("get ass author entity failed: %v", err)
+			continue
+		}
+
+		var associationObj association.SignedObject
+		err = json.Unmarshal([]byte(ass.Payload), &associationObj)
+		if err != nil {
+			log.Printf("error: %v", err)
+			continue
+		}
+
+		body, ok := associationObj.Body.(map[string]interface{})
+		if !ok {
+			log.Printf("parse association body failed")
+			continue
+		}
+
+
+		msg, err := h.message.Get(ctx, ass.TargetID)
+		if err != nil {
+			log.Printf("error: %v", err)
+			continue
+		}
+
+		var msgObject message.SignedObject
+		err = json.Unmarshal([]byte(msg.Payload), &msgObject)
+		if err != nil {
+			log.Printf("error: %v", err)
+			continue
+		}
+
+		msgMeta, ok := msgObject.Meta.(map[string]interface{})
+		ref, ok := msgMeta["apObjectRef"].(string)
+		if !ok {
+			log.Printf("target Message is not activitypub message")
+			continue
+		}
+		dest, ok := msgMeta["apPublisherInbox"].(string)
+		if !ok {
+			log.Printf("target Message is not activitypub message")
+			continue
+		}
+
+		if associationObj.Schema == "https://raw.githubusercontent.com/totegamma/concurrent-schemas/master/associations/like/0.0.1.json" ||
+		   associationObj.Schema == "https://raw.githubusercontent.com/totegamma/concurrent-schemas/master/associations/emoji/0.0.1.json" { // Like or Emoji
+			shortcode, ok := body["shortcode"].(string)
+			if ok {
+				shortcode = ":" + shortcode + ":"
+			} else {
+				shortcode = "⭐"
+			}
+
+			var tag []Tag
+			imageUrl, ok := body["imageUrl"].(string)
+			if ok {
+				tag = []Tag{
+					{
+						Type: "Emoji",
+						ID: imageUrl,
+						Name: shortcode,
+						Icon: Icon {
+							Type: "Image",
+							MediaType: "image/png",
+							URL: imageUrl,
+						},
+					},
+				}
+			}
+
+			create := Object{
+				Context: []string{"https://www.w3.org/ns/activitystreams"},
+				Type:         "Like",
+				ID:           "https://" + h.config.Concurrent.FQDN + "/ap/likes/" + ass.ID,
+				Actor:        "https://" + h.config.Concurrent.FQDN + "/ap/acct/" + assauthor.ID,
+				Content:      shortcode,
+				Tag:          tag,
+				Object: ref,
+			}
+
+			err = h.PostToInbox(ctx, dest, create, assauthor.ID)
+			if err != nil {
+				log.Printf("error: %v", err)
+				continue
+			}
+
+		} else {
+			continue
 		}
 	}
 }
