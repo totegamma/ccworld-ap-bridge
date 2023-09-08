@@ -393,7 +393,7 @@ func (h *Handler) StartAssociationWorker(notificationStream string) {
 				announce := Object{
 					Context: []string{"https://www.w3.org/ns/activitystreams"},
 					Type:    "Announce",
-					ID:      "https://" + h.config.Concurrent.FQDN + "/ap/likes/" + ass.ID,
+					ID:      "https://" + h.config.Concurrent.FQDN + "/ap/note/" + messageId,
 					Actor:   "https://" + h.config.Concurrent.FQDN + "/ap/acct/" + assauthor.ID,
 					Content: "",
 					Object:  ref,
