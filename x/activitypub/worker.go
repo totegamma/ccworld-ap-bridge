@@ -338,11 +338,11 @@ func (h *Handler) StartAssociationWorker(notificationStream string) {
 			create := Object{
 				Context: []string{"https://www.w3.org/ns/activitystreams"},
 				Type:    "Create",
-				ID:      "https://" + h.config.Concurrent.FQDN + "/ap/notes/" + messageId + "/activity",
+				ID:      "https://" + h.config.Concurrent.FQDN + "/ap/note/" + messageId + "/activity",
 				Actor:   "https://" + h.config.Concurrent.FQDN + "/ap/acct/" + assauthor.ID,
 				Object: Note{
 					Type:         "Note",
-					ID:           "https://" + h.config.Concurrent.FQDN + "/ap/notes/" + messageId,
+					ID:           "https://" + h.config.Concurrent.FQDN + "/ap/note/" + messageId,
 					AttributedTo: "https://" + h.config.Concurrent.FQDN + "/ap/acct/" + assauthor.ID,
 					Content:      content,
 					InReplyTo:    ref,
@@ -407,11 +407,11 @@ func (h *Handler) StartAssociationWorker(notificationStream string) {
 				create := Object{
 					Context: []string{"https://www.w3.org/ns/activitystreams"},
 					Type:    "Create",
-					ID:      "https://" + h.config.Concurrent.FQDN + "/ap/notes/" + messageId + "/activity",
+					ID:      "https://" + h.config.Concurrent.FQDN + "/ap/note/" + messageId + "/activity",
 					Actor:   "https://" + h.config.Concurrent.FQDN + "/ap/acct/" + assauthor.ID,
 					Object: Note{
 						Type:         "Note",
-						ID:           "https://" + h.config.Concurrent.FQDN + "/ap/notes/" + messageId,
+						ID:           "https://" + h.config.Concurrent.FQDN + "/ap/note/" + messageId,
 						AttributedTo: "https://" + h.config.Concurrent.FQDN + "/ap/acct/" + assauthor.ID,
 						Content:      content,
 						QuoteURL:     ref,
