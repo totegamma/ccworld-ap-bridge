@@ -168,6 +168,8 @@ type Note struct {
 	Type         string       `json:"type"`
 	ID           string       `json:"id"`
 	AttributedTo string       `json:"attributedTo"`
+	InReplyTo    string       `json:"inReplyTo"`
+	QuoteURL     string       `json:"quoteUrl"`
 	Content      string       `json:"content"`
 	Published    string       `json:"published"`
 	To           []string     `json:"to"`

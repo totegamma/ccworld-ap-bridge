@@ -287,7 +287,7 @@ func (h *Handler) StartAssociationWorker(notificationStream string) {
 				}
 			}
 
-			create := Object{
+			like := Object{
 				Context: []string{"https://www.w3.org/ns/activitystreams"},
 				Type:    "Like",
 				ID:      "https://" + h.config.Concurrent.FQDN + "/ap/likes/" + ass.ID,
@@ -297,12 +297,134 @@ func (h *Handler) StartAssociationWorker(notificationStream string) {
 				Object:  ref,
 			}
 
+			err = h.PostToInbox(ctx, dest, like, assauthor.ID)
+			if err != nil {
+				log.Printf("error: %v", err)
+				continue
+			}
+		} else if associationObj.Schema == "https://raw.githubusercontent.com/totegamma/concurrent-schemas/master/associations/reply/0.0.1.json" { // reply
+			messageId, ok := body["messageId"].(string)
+			if !ok {
+				continue
+			}
+			// messageAuthor, ok := body["messageAuthor"].(string)
+			// if !ok {
+			// 	continue
+			// }
+
+			reply, err := h.message.Get(ctx, messageId)
+			if err != nil {
+				log.Printf("error: %v", err)
+				continue
+			}
+
+			var signedObject message.SignedObject
+			err = json.Unmarshal([]byte(reply.Payload), &signedObject)
+			if err != nil {
+				log.Printf("error: %v", err)
+				continue
+			}
+
+			replyBody, ok := signedObject.Body.(map[string]interface{})
+			if !ok {
+				continue
+			}
+
+			content, ok := replyBody["body"].(string)
+			if !ok || content == "" {
+				continue
+			}
+
+			create := Object{
+				Context: []string{"https://www.w3.org/ns/activitystreams"},
+				Type:    "Create",
+				ID:      "https://" + h.config.Concurrent.FQDN + "/ap/notes/" + messageId + "/activity",
+				Actor:   "https://" + h.config.Concurrent.FQDN + "/ap/acct/" + assauthor.ID,
+				Object: Note{
+					Type:         "Note",
+					ID:           "https://" + h.config.Concurrent.FQDN + "/ap/notes/" + messageId,
+					AttributedTo: "https://" + h.config.Concurrent.FQDN + "/ap/acct/" + assauthor.ID,
+					Content:      content,
+					InReplyTo:    ref,
+					To:           []string{"https://www.w3.org/ns/activitystreams#Public"},
+				},
+			}
+
 			err = h.PostToInbox(ctx, dest, create, assauthor.ID)
 			if err != nil {
 				log.Printf("error: %v", err)
 				continue
 			}
 
+		} else if associationObj.Schema == "https://raw.githubusercontent.com/totegamma/concurrent-schemas/master/associations/reroute/0.0.1.json" { // boost
+			messageId, ok := body["messageId"].(string)
+			if !ok {
+				continue
+			}
+			// messageAuthor, ok := body["messageAuthor"].(string)
+			// if !ok {
+			// 	continue
+			// }
+
+			reply, err := h.message.Get(ctx, messageId)
+			if err != nil {
+				log.Printf("error: %v", err)
+				continue
+			}
+
+			var signedObject message.SignedObject
+			err = json.Unmarshal([]byte(reply.Payload), &signedObject)
+			if err != nil {
+				log.Printf("error: %v", err)
+				continue
+			}
+
+			replyBody, ok := signedObject.Body.(map[string]interface{})
+			if !ok {
+				continue
+			}
+
+			content, ok := replyBody["body"].(string)
+			if !ok {
+				content = ""
+			}
+
+			if content == "" { // boost
+				announce := Object{
+					Context: []string{"https://www.w3.org/ns/activitystreams"},
+					Type:    "Announce",
+					ID:      "https://" + h.config.Concurrent.FQDN + "/ap/likes/" + ass.ID,
+					Actor:   "https://" + h.config.Concurrent.FQDN + "/ap/acct/" + assauthor.ID,
+					Content: "",
+					Object:  ref,
+				}
+				err = h.PostToInbox(ctx, dest, announce, assauthor.ID)
+				if err != nil {
+					log.Printf("error: %v", err)
+					continue
+				}
+			} else { // quote
+				create := Object{
+					Context: []string{"https://www.w3.org/ns/activitystreams"},
+					Type:    "Create",
+					ID:      "https://" + h.config.Concurrent.FQDN + "/ap/notes/" + messageId + "/activity",
+					Actor:   "https://" + h.config.Concurrent.FQDN + "/ap/acct/" + assauthor.ID,
+					Object: Note{
+						Type:         "Note",
+						ID:           "https://" + h.config.Concurrent.FQDN + "/ap/notes/" + messageId,
+						AttributedTo: "https://" + h.config.Concurrent.FQDN + "/ap/acct/" + assauthor.ID,
+						Content:      content,
+						QuoteURL:     ref,
+						To:           []string{"https://www.w3.org/ns/activitystreams#Public"},
+					},
+				}
+
+				err = h.PostToInbox(ctx, dest, create, assauthor.ID)
+				if err != nil {
+					log.Printf("error: %v", err)
+					continue
+				}
+			}
 		} else {
 			continue
 		}
