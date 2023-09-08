@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"log"
-	"regexp"
 	"time"
 
 	"github.com/totegamma/concurrent/x/association"
@@ -72,97 +71,43 @@ func (h *Handler) StartMessageWorker() {
 								continue
 							}
 
-							msg, err := h.message.Get(ctx, streamEvent.Body.ID)
+							note, err := h.MessageToNote(ctx, streamEvent.Body.ID)
 							if err != nil {
 								log.Printf("error: %v", err)
 								continue
 							}
 
-							var signedObject message.SignedObject
-							err = json.Unmarshal([]byte(msg.Payload), &signedObject)
-							if err != nil {
-								log.Printf("error: %v", err)
-								continue
-							}
-
-							body := signedObject.Body
-
-							var text string
-							var emojis []Tag
-							var images []string
-							if signedObject.Schema == "https://raw.githubusercontent.com/totegamma/concurrent-schemas/master/messages/note/0.0.1.json" {
-								t, ok := body.(map[string]interface{})["body"].(string)
-								if ok {
-									text = t
+							if note.Type == "Announce" {
+								announce := Object {
+									Context: []string{"https://www.w3.org/ns/activitystreams"},
+									Type:    "Announce",
+									ID:      "https://" + h.config.Concurrent.FQDN + "/ap/note/" + streamEvent.Body.ID + "/activity",
+									Actor:   "https://" + h.config.Concurrent.FQDN + "/ap/acct/" + job.PublisherUserID,
+									Content: "",
+									Object:  note.Object,
 								}
 
-								// extract image url of markdown notation
-								imagePattern := regexp.MustCompile(`!\[.*\]\((.*)\)`)
-								matches := imagePattern.FindAllStringSubmatch(text, -1)
-								for _, match := range matches {
-									images = append(images, match[1])
-								}
-
-								// remove markdown notation
-								text = imagePattern.ReplaceAllString(text, "")
-
-								e, ok := body.(map[string]interface{})["emojis"].(map[string]interface{})
-								if ok {
-									for k, v := range e {
-										imageURL, ok := v.(map[string]interface{})["imageURL"].(string)
-										if !ok {
-											continue
-										}
-										emoji := Tag{
-											ID:   imageURL,
-											Type: "Emoji",
-											Name: ":" + k + ":",
-											Icon: Icon{
-												Type:      "Image",
-												MediaType: "image/png",
-												URL:       imageURL,
-											},
-										}
-										emojis = append(emojis, emoji)
-									}
+								err = h.PostToInbox(ctx, job.SubscriberInbox, announce, job.PublisherUserID)
+								if err != nil {
+									log.Printf("error: %v", err)
+									continue
 								}
 							} else {
-								continue
-							}
 
-							attachments := []Attachment{}
-							for _, imageURL := range images {
-								attachment := Attachment{
-									Type:      "Document",
-									MediaType: "image/png",
-									URL:       imageURL,
+								create := Create{
+									Context: []string{"https://www.w3.org/ns/activitystreams"},
+									Type:    "Create",
+									ID:      "https://" + h.config.Concurrent.FQDN + "/ap/note/" + streamEvent.Body.ID + "/activity",
+									Actor:   "https://" + h.config.Concurrent.FQDN + "/ap/acct/" + job.PublisherUserID,
+									To:      []string{"https://www.w3.org/ns/activitystreams#Public"},
+									Object: note,
 								}
-								attachments = append(attachments, attachment)
-							}
 
-							create := Create{
-								Context: []string{"https://www.w3.org/ns/activitystreams"},
-								Type:    "Create",
-								ID:      "https://" + h.config.Concurrent.FQDN + "/ap/note/" + msg.ID,
-								Actor:   "https://" + h.config.Concurrent.FQDN + "/ap/acct/" + job.PublisherUserID,
-								To:      []string{"https://www.w3.org/ns/activitystreams#Public"},
-								Object: Note{
-									Context:      "https://www.w3.org/ns/activitystreams",
-									Type:         "Note",
-									ID:           "https://" + h.config.Concurrent.FQDN + "/ap/note/" + msg.ID,
-									AttributedTo: "https://" + h.config.Concurrent.FQDN + "/ap/acct/" + job.PublisherUserID,
-									Content:      text,
-									Published:    msg.CDate.Format(time.RFC3339),
-									To:           []string{"https://www.w3.org/ns/activitystreams#Public"},
-									Tag:          emojis,
-									Attachment:   attachments,
-								},
-							}
-
-							err = h.PostToInbox(ctx, job.SubscriberInbox, create, job.PublisherUserID)
-							if err != nil {
-								log.Printf("error: %v", err)
-								continue
+								err = h.PostToInbox(ctx, job.SubscriberInbox, create, job.PublisherUserID)
+								if err != nil {
+									log.Printf("error: %v", err)
+									continue
+								}
 							}
 						}
 					}

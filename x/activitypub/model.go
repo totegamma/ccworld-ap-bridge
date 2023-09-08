@@ -175,6 +175,7 @@ type Note struct {
 	To           []string     `json:"to"`
 	Tag          []Tag        `json:"tag"`
 	Attachment   []Attachment `json:"attachment"`
+	Object       interface{}  `json:"object"`
 }
 
 // NodeInfo is a struct for a NodeInfo response.

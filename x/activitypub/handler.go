@@ -153,36 +153,11 @@ func (h Handler) Note(c echo.Context) error {
 	if id == "" {
 		return c.String(http.StatusBadRequest, "Invalid noteID")
 	}
+
 	msg, err := h.message.Get(ctx, id)
 	if err != nil {
 		span.RecordError(err)
 		return c.String(http.StatusNotFound, "message not found")
-	}
-
-	entity, err := h.repo.GetEntityByCCID(ctx, msg.Author)
-	if err != nil {
-		span.RecordError(err)
-		return c.String(http.StatusNotFound, "entity not found")
-	}
-
-	var signedObject message.SignedObject
-	err = json.Unmarshal([]byte(msg.Payload), &signedObject)
-	if err != nil {
-		span.RecordError(err)
-		return c.String(http.StatusInternalServerError, "Internal server error(payload parse error)")
-	}
-
-	body := signedObject.Body
-
-	var text string
-	if signedObject.Schema == "https://raw.githubusercontent.com/totegamma/concurrent-schemas/master/messages/note/0.0.1.json" {
-		t, ok := body.(map[string]interface{})["body"].(string)
-		if !ok {
-			return c.String(http.StatusInternalServerError, "Internal server error (body parse error)")
-		}
-		text = t
-	} else {
-		return c.String(http.StatusNotImplemented, "target message is not implemented for activitypub")
 	}
 
 	// check if accept is application/activity+json or application/ld+json
@@ -194,15 +169,13 @@ func (h Handler) Note(c echo.Context) error {
 		return c.Redirect(http.StatusFound, "https://concurrent.world/message/"+id+"@"+msg.Author)
 	}
 
-	return c.JSON(http.StatusOK, Note{
-		Context:      "https://www.w3.org/ns/activitystreams",
-		Type:         "Note",
-		ID:           "https://" + h.config.Concurrent.FQDN + "/ap/note/" + id,
-		AttributedTo: "https://" + h.config.Concurrent.FQDN + "/ap/acct/" + entity.ID,
-		Content:      text,
-		Published:    msg.CDate.Format(time.RFC3339),
-		To:           []string{"https://www.w3.org/ns/activitystreams#Public"},
-	})
+	note, err := h.MessageToNote(ctx, id)
+	if err != nil {
+		span.RecordError(err)
+		return c.String(http.StatusInternalServerError, "error converting message to note")
+	}
+
+	return c.JSON(http.StatusOK, note)
 }
 
 // Inbox handles inbox requests.
