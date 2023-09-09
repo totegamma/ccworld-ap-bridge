@@ -85,6 +85,7 @@ func (h *Handler) StartMessageWorker() {
 									Actor:   "https://" + h.config.Concurrent.FQDN + "/ap/acct/" + job.PublisherUserID,
 									Content: "",
 									Object:  note.Object,
+                                    To:      []string{"https://www.w3.org/ns/activitystreams#Public"},
 								}
 
 								err = h.PostToInbox(ctx, job.SubscriberInbox, announce, job.PublisherUserID)

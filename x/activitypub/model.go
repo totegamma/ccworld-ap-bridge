@@ -121,6 +121,7 @@ type Object struct {
 	Content    string       `json:"content"`
 	Actor      string       `json:"actor"`
 	Object     interface{}  `json:"object"`
+	To         []string     `json:"to"`
 	Attachment []Attachment `json:"attachment"`
 	Tag        []Tag        `json:"tag"`
 }
