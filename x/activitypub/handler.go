@@ -365,6 +365,11 @@ func (h Handler) Inbox(c echo.Context) error {
 				CcObjectID:   "",
 			})
 
+			if err != nil {
+				span.RecordError(err)
+				return c.String(http.StatusOK, "note already exists")
+			}
+
 			// list up follows
 			follows, err := h.repo.GetFollowsByPublisher(ctx, object.Actor)
 			if err != nil {
