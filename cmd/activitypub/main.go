@@ -152,6 +152,8 @@ func main() {
 	ap.GET("/api/entity/:ccid", activitypubHandler.GetEntityID)
 	ap.GET("/api/person/:id", activitypubHandler.GetPerson)
 
+	ap.POST("/inbox", activitypubHandler.Inbox)
+
 	// should be restricted
 	apR := ap.Group("", auth.JWT)
 	apR.POST("/api/entity", activitypubHandler.CreateEntity, authService.Restrict(auth.ISLOCAL))   // ISLOCAL

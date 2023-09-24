@@ -129,6 +129,10 @@ func (h Handler) User(c echo.Context) error {
 		ID:                "https://" + h.config.Concurrent.FQDN + "/ap/acct/" + id,
 		Inbox:             "https://" + h.config.Concurrent.FQDN + "/ap/acct/" + id + "/inbox",
 		Outbox:            "https://" + h.config.Concurrent.FQDN + "/ap/acct/" + id + "/outbox",
+		SharedInbox:       "https://" + h.config.Concurrent.FQDN + "/ap/inbox",
+		Endpoints: PersonEndpoints{
+			SharedInbox: "https://" + h.config.Concurrent.FQDN + "/ap/inbox",
+		},
 		PreferredUsername: id,
 		Name:              person.Name,
 		Summary:           person.Summary,

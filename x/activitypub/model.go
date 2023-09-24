@@ -76,6 +76,11 @@ type WebFingerLink struct {
 	Href string `json:"href"`
 }
 
+// endpoints is a struct for the endpoints field of a WebFinger response.
+type PersonEndpoints struct {
+	SharedInbox string `json:"sharedInbox"`
+}
+
 // Person is a struct for an ActivityPub actor.
 type Person struct {
 	Context           interface{} `json:"@context"`
@@ -83,6 +88,8 @@ type Person struct {
 	ID                string      `json:"id"`
 	Inbox             string      `json:"inbox"`
 	Outbox            string      `json:"outbox"`
+	SharedInbox       string      `json:"sharedInbox"`
+	Endpoints         PersonEndpoints `json:"endpoints"`
 	Followers         string      `json:"followers"`
 	Following         string      `json:"following"`
 	Liked             string      `json:"liked"`
