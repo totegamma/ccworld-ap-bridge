@@ -11,6 +11,7 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/redis/go-redis/v9"
 	"github.com/totegamma/concurrent/x/association"
+	"github.com/totegamma/concurrent/x/entity"
 	"github.com/totegamma/concurrent/x/message"
 	"github.com/totegamma/concurrent/x/util"
 	"go.opentelemetry.io/otel"
@@ -29,8 +30,9 @@ var tracer = otel.Tracer("activitypub")
 type Handler struct {
 	repo        *Repository
 	rdb         *redis.Client
-	message     *message.Service
-	association *association.Service
+	message     message.Service
+	entity      entity.Service
+	association association.Service
 	config      util.Config
 	apconfig    APConfig
 }
@@ -39,12 +41,13 @@ type Handler struct {
 func NewHandler(
 	repo *Repository,
 	rdb *redis.Client,
-	message *message.Service,
-	association *association.Service,
+	message message.Service,
+	entity entity.Service,
+	association association.Service,
 	config util.Config,
 	apconfig APConfig,
 ) *Handler {
-	return &Handler{repo, rdb, message, association, config, apconfig}
+	return &Handler{repo, rdb, message, entity, association, config, apconfig}
 }
 
 // :: Activitypub Related Functions ::
@@ -1024,8 +1027,20 @@ func (h Handler) GetStats(c echo.Context) error {
 
 // NodeInfo handles nodeinfo requests
 func (h Handler) NodeInfo(c echo.Context) error {
-	_, span := tracer.Start(c.Request().Context(), "NodeInfo")
+	ctx, span := tracer.Start(c.Request().Context(), "NodeInfo")
 	defer span.End()
+
+	messages, err := h.message.Total(ctx)
+	if err != nil {
+		span.RecordError(err)
+		return c.String(http.StatusInternalServerError, "Internal server error")
+	}
+
+	users, err := h.entity.Total(ctx)
+	if err != nil {
+		span.RecordError(err)
+		return c.String(http.StatusInternalServerError, "Internal server error")
+	}
 
 	return c.JSON(http.StatusOK, NodeInfo{
 		Version: "2.0",
@@ -1034,6 +1049,7 @@ func (h Handler) NodeInfo(c echo.Context) error {
 			Version: util.GetGitShortHash(),
 		},
 		Protocols: []string{
+			"concurrent",
 			"activitypub",
 		},
 		OpenRegistrations: h.config.Concurrent.Registration == "open",
@@ -1045,6 +1061,12 @@ func (h Handler) NodeInfo(c echo.Context) error {
 				Email: h.config.Profile.MaintainerEmail,
 			},
 			ThemeColor: h.config.Profile.ThemeColor,
+		},
+		Usage: NodeInfoUsage{
+			Users: NodeInfoUsers{
+				TotalUsers: users,
+			},
+			LocalPosts: messages,
 		},
 	})
 }

@@ -5,6 +5,7 @@ import (
 	"gorm.io/gorm"
 )
 
+
 // Repository is a repository for ActivityPub.
 type Repository struct {
 	db *gorm.DB

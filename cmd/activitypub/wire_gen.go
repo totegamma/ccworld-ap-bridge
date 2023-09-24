@@ -21,7 +21,7 @@ import (
 
 // Injectors from wire.go:
 
-func SetupAuthService(db *gorm.DB, config util.Config) *auth.Service {
+func SetupAuthService(db *gorm.DB, config util.Config) auth.Service {
 	repository := entity.NewRepository(db)
 	service := entity.NewService(repository, config)
 	domainRepository := domain.NewRepository(db)
@@ -40,6 +40,6 @@ func SetupActivitypubHandler(db *gorm.DB, rdb *redis.Client, config util.Config,
 	messageService := message.NewService(rdb, messageRepository, streamService)
 	associationRepository := association.NewRepository(db)
 	associationService := association.NewService(rdb, associationRepository, streamService, messageService)
-	handler := activitypub.NewHandler(repository, rdb, messageService, associationService, config, apConfig)
+	handler := activitypub.NewHandler(repository, rdb, messageService, service, associationService, config, apConfig)
 	return handler
 }

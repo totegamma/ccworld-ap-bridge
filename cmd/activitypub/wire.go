@@ -17,12 +17,23 @@ import (
 	"github.com/totegamma/concurrent/x/util"
 )
 
-func SetupAuthService(db *gorm.DB, config util.Config) *auth.Service {
+func SetupAuthService(db *gorm.DB, config util.Config) auth.Service {
 	wire.Build(auth.NewService, entity.NewService, entity.NewRepository, domain.NewService, domain.NewRepository)
-	return &auth.Service{}
+	return nil
 }
 
 func SetupActivitypubHandler(db *gorm.DB, rdb *redis.Client, config util.Config, apConfig activitypub.APConfig) *activitypub.Handler {
-	wire.Build(activitypub.NewHandler, activitypub.NewRepository, message.NewService, message.NewRepository, association.NewService, association.NewRepository, entity.NewService, entity.NewRepository, stream.NewService, stream.NewRepository)
+	wire.Build(
+		activitypub.NewHandler,
+		activitypub.NewRepository,
+		message.NewService,
+		message.NewRepository,
+		entity.NewService,
+		entity.NewRepository,
+		association.NewService,
+		association.NewRepository,
+		stream.NewService,
+		stream.NewRepository,
+	)
 	return &activitypub.Handler{}
 }

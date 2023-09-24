@@ -185,6 +185,15 @@ type Note struct {
 	Object       interface{}  `json:"object"`
 }
 
+type NodeInfoUsers struct {
+	TotalUsers int64 `json:"total"`
+}
+
+type NodeInfoUsage struct {
+	LocalPosts int64 `json:"localPosts"`
+	Users      NodeInfoUsers `json:"users"`
+}
+
 // NodeInfo is a struct for a NodeInfo response.
 type NodeInfo struct {
 	Version           string           `json:"version"`
@@ -192,6 +201,7 @@ type NodeInfo struct {
 	Protocols         []string         `json:"protocols"`
 	OpenRegistrations bool             `json:"openRegistrations"`
 	Metadata          NodeInfoMetadata `json:"metadata"`
+	Usage             NodeInfoUsage    `json:"usage"`
 }
 
 // NodeInfoSoftware is a struct for the software field of a NodeInfo response.
