@@ -201,39 +201,47 @@ func (r *Repository) RemoveFollower(ctx context.Context, local, remote string) (
 	return follower, nil
 }
 
-// CreateApObjectCrossReference creates cross reference
-func (r *Repository) CreateApObjectCrossReference(ctx context.Context, crossReference ApObjectCrossReference) error {
-	ctx, span := tracer.Start(ctx, "RepositoryCreateApObjectCrossReference")
+// CreateApObjectReference creates reference
+func (r *Repository) CreateApObjectReference(ctx context.Context, reference ApObjectReference) error {
+	ctx, span := tracer.Start(ctx, "RepositoryCreateApObjectReference")
 	defer span.End()
 
-	return r.db.WithContext(ctx).Create(&crossReference).Error
+	return r.db.WithContext(ctx).Create(&reference).Error
 }
 
-// GetApObjectCrossReferenceByApObjectID returns cross reference by ap object ID
-func (r *Repository) GetApObjectCrossReferenceByApObjectID(ctx context.Context, apObjectID string) (ApObjectCrossReference, error) {
-	ctx, span := tracer.Start(ctx, "RepositoryGetApObjectCrossReferenceByApObjectID")
+// UpdateApObjectReference updates reference
+func (r *Repository) UpdateApObjectReference(ctx context.Context, reference ApObjectReference) error {
+	ctx, span := tracer.Start(ctx, "RepositoryUpdateApObjectReference")
 	defer span.End()
 
-	var crossReferences ApObjectCrossReference
-	err := r.db.WithContext(ctx).Where("ap_object_id = ?", apObjectID).First(&crossReferences).Error
-	return crossReferences, err
+	return r.db.WithContext(ctx).Save(&reference).Error
 }
 
-// GetApObjectCrossReferenceByCcObjectID returns cross reference by reference
-func (r *Repository) GetApObjectCrossReferenceByCcObjectID(ctx context.Context, ccObjectID string) (ApObjectCrossReference, error) {
-	ctx, span := tracer.Start(ctx, "RepositoryGetApObjectCrossReferenceByCcObjectID")
+// GetApObjectReferenceByApObjectID returns reference by ap object ID
+func (r *Repository) GetApObjectReferenceByApObjectID(ctx context.Context, apObjectID string) (ApObjectReference, error) {
+	ctx, span := tracer.Start(ctx, "RepositoryGetApObjectReferenceByApObjectID")
 	defer span.End()
 
-	var crossReferences ApObjectCrossReference
-	err := r.db.WithContext(ctx).Where("cc_object_id = ?", ccObjectID).First(&crossReferences).Error
-	return crossReferences, err
+	var references ApObjectReference
+	err := r.db.WithContext(ctx).Where("ap_object_id = ?", apObjectID).First(&references).Error
+	return references, err
 }
 
-// DeleteApObjectCrossReference deletes cross reference by ap object ID
-func (r *Repository) DeleteApObjectCrossReference(ctx context.Context, reference ApObjectCrossReference) error {
-	ctx, span := tracer.Start(ctx, "RepositoryDeleteApObjectCrossReference")
+// GetApObjectReferenceByCcObjectID returns reference by reference
+func (r *Repository) GetApObjectReferenceByCcObjectID(ctx context.Context, ccObjectID string) (ApObjectReference, error) {
+	ctx, span := tracer.Start(ctx, "RepositoryGetApObjectReferenceByCcObjectID")
 	defer span.End()
 
-	return r.db.WithContext(ctx).Delete(&reference).Error
+	var references ApObjectReference
+	err := r.db.WithContext(ctx).Where("cc_object_id = ?", ccObjectID).First(&references).Error
+	return references, err
+}
+
+// DeleteApObjectReference deletes reference by ap object ID
+func (r *Repository) DeleteApObjectReference(ctx context.Context, ApObjectID string) error {
+	ctx, span := tracer.Start(ctx, "RepositoryDeleteApObjectReference")
+	defer span.End()
+
+	return r.db.WithContext(ctx).Where("ap_object_id = ?", ApObjectID).Delete(&ApObjectReference{}).Error
 }
 

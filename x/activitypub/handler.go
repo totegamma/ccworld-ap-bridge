@@ -352,12 +352,18 @@ func (h Handler) Inbox(c echo.Context) error {
 		switch createType {
 		case "Note":
 			// check if the note is already exists
-			_, err := h.repo.GetApObjectCrossReferenceByCcObjectID(ctx, createID)
+			_, err := h.repo.GetApObjectReferenceByCcObjectID(ctx, createID)
 			if err == nil {
 				// already exists
 				log.Println("note already exists")
 				return c.String(http.StatusOK, "note already exists")
 			}
+
+			// preserve reference
+			err = h.repo.CreateApObjectReference(ctx, ApObjectReference{
+				ApObjectID:   createID,
+				CcObjectID:   "",
+			})
 
 			// list up follows
 			follows, err := h.repo.GetFollowsByPublisher(ctx, object.Actor)
@@ -497,8 +503,8 @@ func (h Handler) Inbox(c echo.Context) error {
 				return c.String(http.StatusInternalServerError, "Internal server error (post message error)")
 			}
 
-			// save cross reference
-			err = h.repo.CreateApObjectCrossReference(ctx, ApObjectCrossReference{
+			// save reference
+			err = h.repo.UpdateApObjectReference(ctx, ApObjectReference{
 				ApObjectID:   createID,
 				CcObjectID:   created.ID,
 			})
@@ -616,7 +622,7 @@ func (h Handler) Inbox(c echo.Context) error {
 			return c.String(http.StatusOK, "Invalid request body")
 		}
 
-		deleteRef, err := h.repo.GetApObjectCrossReferenceByApObjectID(ctx, deleteID)
+		deleteRef, err := h.repo.GetApObjectReferenceByApObjectID(ctx, deleteID)
 		if err != nil {
 			span.RecordError(err)
 			return c.String(http.StatusOK, "Object Already Deleted")
@@ -628,7 +634,7 @@ func (h Handler) Inbox(c echo.Context) error {
 			return c.String(http.StatusInternalServerError, "Internal server error (delete error)")
 		}
 
-		err = h.repo.DeleteApObjectCrossReference(ctx, deleteRef)
+		err = h.repo.DeleteApObjectReference(ctx, deleteRef.ApObjectID)
 		if err != nil {
 			span.RecordError(err)
 			return c.String(http.StatusInternalServerError, "Internal server error (delete error)")

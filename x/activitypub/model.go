@@ -45,10 +45,10 @@ type ApFollower struct {
 	SubscriberInbox     string `json:"subscriber_inbox" gorm:"type:text"`                        // ActivityPub Inbox
 }
 
-// ApObjectCrossReference is a db model of an ActivityPub object cross reference.
-type ApObjectCrossReference struct {
+// ApObjectReference is a db model of an ActivityPub object cross reference.
+type ApObjectReference struct {
 	ApObjectID string `json:"apobjectID" gorm:"primaryKey;type:text;"`
-	CcObjectID string `json:"ccobjectID" gorm:"primaryKey;type:text;"`
+	CcObjectID string `json:"ccobjectID" gorm:"type:text;"`
 }
 
 // WellKnown is a struct for a well-known response.
