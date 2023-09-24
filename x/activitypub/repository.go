@@ -108,6 +108,16 @@ func (r *Repository) GetFollowers(ctx context.Context, ownerID string) ([]ApFoll
 	return followers, err
 }
 
+// GetFollowsByPublisher returns follows by publisher
+func (r *Repository) GetFollowsByPublisher(ctx context.Context, publisher string) ([]ApFollow, error) {
+	ctx, span := tracer.Start(ctx, "RepositoryGetFollowsByPublisher")
+	defer span.End()
+
+	var follows []ApFollow
+	err := r.db.WithContext(ctx).Where("publisher = ?", publisher).Find(&follows).Error
+	return follows, err
+}
+
 // GetFollowerByTuple returns follow by tuple
 func (r *Repository) GetFollowerByTuple(ctx context.Context, local, remote string) (ApFollower, error) {
 	ctx, span := tracer.Start(ctx, "RepositoryGetFollowerByTuple")
@@ -190,3 +200,32 @@ func (r *Repository) RemoveFollower(ctx context.Context, local, remote string) (
 	}
 	return follower, nil
 }
+
+// CreateApObjectCrossReference creates cross reference
+func (r *Repository) CreateApObjectCrossReference(ctx context.Context, crossReference ApObjectCrossReference) error {
+	ctx, span := tracer.Start(ctx, "RepositoryCreateApObjectCrossReference")
+	defer span.End()
+
+	return r.db.WithContext(ctx).Create(&crossReference).Error
+}
+
+// GetApObjectCrossReferenceByApObjectID returns cross reference by ap object ID
+func (r *Repository) GetApObjectCrossReferenceByApObjectID(ctx context.Context, apObjectID string) (ApObjectCrossReference, error) {
+	ctx, span := tracer.Start(ctx, "RepositoryGetApObjectCrossReferenceByApObjectID")
+	defer span.End()
+
+	var crossReferences ApObjectCrossReference
+	err := r.db.WithContext(ctx).Where("ap_object_id = ?", apObjectID).Find(&crossReferences).Error
+	return crossReferences, err
+}
+
+// GetApObjectCrossReferenceByCcObjectID returns cross reference by reference
+func (r *Repository) GetApObjectCrossReferenceByCcObjectID(ctx context.Context, ccObjectID string) (ApObjectCrossReference, error) {
+	ctx, span := tracer.Start(ctx, "RepositoryGetApObjectCrossReferenceByCcObjectID")
+	defer span.End()
+
+	var crossReferences ApObjectCrossReference
+	err := r.db.WithContext(ctx).Where("cc_object_id = ?", ccObjectID).Find(&crossReferences).Error
+	return crossReferences, err
+}
+

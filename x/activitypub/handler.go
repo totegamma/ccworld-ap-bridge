@@ -351,20 +351,28 @@ func (h Handler) Inbox(c echo.Context) error {
 		}
 		switch createType {
 		case "Note":
-			receiverID := c.Param("id")
-			if receiverID == "" {
-				return c.String(http.StatusBadRequest, "Invalid username")
+			// check if the note is already exists
+			_, err := h.repo.GetApObjectCrossReferenceByCcObjectID(ctx, createID)
+			if err == nil {
+				// already exists
+				return c.String(http.StatusOK, "note already exists")
 			}
 
-			receiver, err := h.repo.GetEntityByID(ctx, receiverID)
+			// list up follows
+			follows, err := h.repo.GetFollowsByPublisher(ctx, object.Actor)
 			if err != nil {
 				span.RecordError(err)
-				return c.String(http.StatusNotFound, "entity not found")
+				return c.String(http.StatusInternalServerError, "Internal server error (get follows error)")
 			}
-			destStream := receiver.FollowStream
-			if destStream == "" {
-				log.Println("destStream is empty", receiver)
-				return c.String(http.StatusNotFound, "entity not found")
+
+			destStreams := []string{}
+			for _, follow := range follows {
+				entity, err := h.repo.GetEntityByID(ctx, follow.SubscriberUserID)
+				if err != nil {
+					span.RecordError(err)
+					continue
+				}
+				destStreams = append(destStreams, entity.FollowStream)
 			}
 
 			person, err := FetchPerson(ctx, object.Actor)
@@ -378,6 +386,7 @@ func (h Handler) Inbox(c echo.Context) error {
 				log.Println("Invalid create object", object.Object)
 				return c.String(http.StatusBadRequest, "Invalid request body")
 			}
+
 
 			attachments, ok := createObject["attachment"].([]interface{})
 			if ok {
@@ -475,11 +484,17 @@ func (h Handler) Inbox(c echo.Context) error {
 				return c.String(http.StatusInternalServerError, "Internal server error (sign error)")
 			}
 
-			_, err = h.message.PostMessage(ctx, objstr, objsig, []string{destStream})
+			created, err := h.message.PostMessage(ctx, objstr, objsig, destStreams)
 			if err != nil {
 				span.RecordError(err)
 				return c.String(http.StatusInternalServerError, "Internal server error (post message error)")
 			}
+
+			// save cross reference
+			err = h.repo.CreateApObjectCrossReference(ctx, ApObjectCrossReference{
+				ApObjectID:   createID,
+				CcObjectID:   created.ID,
+			})
 
 			return c.String(http.StatusOK, "note accepted")
 		default:
