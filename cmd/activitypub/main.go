@@ -115,6 +115,7 @@ func main() {
 		&activitypub.ApPerson{},
 		&activitypub.ApFollow{},
 		&activitypub.ApFollower{},
+		&activitypub.ApObjectCrossReference{},
 	)
 
 	rdb := redis.NewClient(&redis.Options{
