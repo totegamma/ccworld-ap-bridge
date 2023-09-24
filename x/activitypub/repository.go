@@ -229,3 +229,11 @@ func (r *Repository) GetApObjectCrossReferenceByCcObjectID(ctx context.Context, 
 	return crossReferences, err
 }
 
+// DeleteApObjectCrossReference deletes cross reference by ap object ID
+func (r *Repository) DeleteApObjectCrossReference(ctx context.Context, reference ApObjectCrossReference) error {
+	ctx, span := tracer.Start(ctx, "RepositoryDeleteApObjectCrossReference")
+	defer span.End()
+
+	return r.db.WithContext(ctx).Delete(&reference).Error
+}
+

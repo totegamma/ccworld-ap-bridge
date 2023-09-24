@@ -597,6 +597,37 @@ func (h Handler) Inbox(c echo.Context) error {
 			log.Println("Unhandled Undo Object", string(b))
 			return c.String(http.StatusOK, "OK but not implemented")
 		}
+	case "Delete":
+		deleteObject, ok := object.Object.(map[string]interface{})
+		if !ok {
+			log.Println("Invalid delete object", object.Object)
+			return c.String(http.StatusOK, "Invalid request body")
+		}
+		deleteID, ok := deleteObject["id"].(string)
+		if !ok {
+			log.Println("Invalid delete object", object.Object)
+			return c.String(http.StatusOK, "Invalid request body")
+		}
+
+		deleteRef, err := h.repo.GetApObjectCrossReferenceByApObjectID(ctx, deleteID)
+		if err != nil {
+			span.RecordError(err)
+			return c.String(http.StatusOK, "Object Already Deleted")
+		}
+
+		_, err = h.message.Delete(ctx, deleteRef.CcObjectID)
+		if err != nil {
+			span.RecordError(err)
+			return c.String(http.StatusInternalServerError, "Internal server error (delete error)")
+		}
+
+		err = h.repo.DeleteApObjectCrossReference(ctx, deleteRef)
+		if err != nil {
+			span.RecordError(err)
+			return c.String(http.StatusInternalServerError, "Internal server error (delete error)")
+		}
+		return c.String(http.StatusOK, "Deleted")
+
 	default:
 		// print request body
 		b, err := json.Marshal(object)
