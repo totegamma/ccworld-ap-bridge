@@ -355,12 +355,14 @@ func (h Handler) Inbox(c echo.Context) error {
 			_, err := h.repo.GetApObjectCrossReferenceByCcObjectID(ctx, createID)
 			if err == nil {
 				// already exists
+				log.Println("note already exists")
 				return c.String(http.StatusOK, "note already exists")
 			}
 
 			// list up follows
 			follows, err := h.repo.GetFollowsByPublisher(ctx, object.Actor)
 			if err != nil {
+				log.Println("Internal server error (get follows error)", err)
 				span.RecordError(err)
 				return c.String(http.StatusInternalServerError, "Internal server error (get follows error)")
 			}
@@ -369,10 +371,16 @@ func (h Handler) Inbox(c echo.Context) error {
 			for _, follow := range follows {
 				entity, err := h.repo.GetEntityByID(ctx, follow.SubscriberUserID)
 				if err != nil {
+					log.Println("Internal server error (get entity error)", err)
 					span.RecordError(err)
 					continue
 				}
 				destStreams = append(destStreams, entity.FollowStream)
+			}
+
+			if len(destStreams) == 0 {
+				log.Println("No followers")
+				return c.String(http.StatusOK, "No followers")
 			}
 
 			person, err := FetchPerson(ctx, object.Actor)
@@ -386,7 +394,6 @@ func (h Handler) Inbox(c echo.Context) error {
 				log.Println("Invalid create object", object.Object)
 				return c.String(http.StatusBadRequest, "Invalid request body")
 			}
-
 
 			attachments, ok := createObject["attachment"].([]interface{})
 			if ok {

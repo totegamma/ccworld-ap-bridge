@@ -114,7 +114,7 @@ func (r *Repository) GetFollowsByPublisher(ctx context.Context, publisher string
 	defer span.End()
 
 	var follows []ApFollow
-	err := r.db.WithContext(ctx).Where("publisher = ?", publisher).Find(&follows).Error
+	err := r.db.WithContext(ctx).Where("publisher_person_url = ?", publisher).Find(&follows).Error
 	return follows, err
 }
 
@@ -215,7 +215,7 @@ func (r *Repository) GetApObjectCrossReferenceByApObjectID(ctx context.Context, 
 	defer span.End()
 
 	var crossReferences ApObjectCrossReference
-	err := r.db.WithContext(ctx).Where("ap_object_id = ?", apObjectID).Find(&crossReferences).Error
+	err := r.db.WithContext(ctx).Where("ap_object_id = ?", apObjectID).First(&crossReferences).Error
 	return crossReferences, err
 }
 
@@ -225,7 +225,7 @@ func (r *Repository) GetApObjectCrossReferenceByCcObjectID(ctx context.Context, 
 	defer span.End()
 
 	var crossReferences ApObjectCrossReference
-	err := r.db.WithContext(ctx).Where("cc_object_id = ?", ccObjectID).Find(&crossReferences).Error
+	err := r.db.WithContext(ctx).Where("cc_object_id = ?", ccObjectID).First(&crossReferences).Error
 	return crossReferences, err
 }
 
