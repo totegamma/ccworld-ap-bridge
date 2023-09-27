@@ -190,19 +190,8 @@ func (h Handler) Inbox(c echo.Context) error {
 	ctx, span := tracer.Start(c.Request().Context(), "HandlerAPInbox")
 	defer span.End()
 
-	id := c.Param("id")
-	if id == "" {
-		return c.String(http.StatusBadRequest, "Invalid username")
-	}
-
-	_, err := h.repo.GetEntityByID(ctx, id)
-	if err != nil {
-		span.RecordError(err)
-		return c.String(http.StatusNotFound, "entity not found")
-	}
-
 	var object Object
-	err = c.Bind(&object)
+	err := c.Bind(&object)
 	if err != nil {
 		span.RecordError(err)
 		return c.String(http.StatusBadRequest, "Invalid request body")
@@ -210,6 +199,17 @@ func (h Handler) Inbox(c echo.Context) error {
 
 	switch object.Type {
 	case "Follow":
+
+		id := c.Param("id")
+		if id == "" {
+			return c.String(http.StatusBadRequest, "Invalid username")
+		}
+
+		_, err := h.repo.GetEntityByID(ctx, id)
+		if err != nil {
+			span.RecordError(err)
+			return c.String(http.StatusNotFound, "entity not found")
+		}
 
 		requester, err := FetchPerson(ctx, object.Actor)
 		if err != nil {
