@@ -68,17 +68,23 @@ func (h *Handler) StartMessageWorker() {
 								continue
 							}
 
-							streambody, ok := streamEvent.Body.(core.Message)
+							messageID, ok := streamEvent.Body.(map[string]interface{})["id"].(string)
 							if !ok {
-								log.Printf("streamEvent body cast error: %v", err)
+								log.Printf("streamEvent body read id failed: %v", streamEvent.Body)
 								continue
 							}
 
-							if streambody.Author != ownerID {
+							messageAuthor, ok := streamEvent.Body.(map[string]interface{})["author"].(string)
+							if !ok {
+								log.Printf("streamEvent body read author failed: %v", streamEvent.Body)
 								continue
 							}
 
-							note, err := h.MessageToNote(ctx, streambody.ID)
+							if messageAuthor != ownerID {
+								continue
+							}
+
+							note, err := h.MessageToNote(ctx, messageID)
 							if err != nil {
 								log.Printf("error: %v", err)
 								continue
@@ -88,7 +94,7 @@ func (h *Handler) StartMessageWorker() {
 								announce := Object {
 									Context: []string{"https://www.w3.org/ns/activitystreams"},
 									Type:    "Announce",
-									ID:      "https://" + h.config.Concurrent.FQDN + "/ap/note/" + streambody.ID + "/activity",
+									ID:      "https://" + h.config.Concurrent.FQDN + "/ap/note/" + messageID + "/activity",
 									Actor:   "https://" + h.config.Concurrent.FQDN + "/ap/acct/" + job.PublisherUserID,
 									Content: "",
 									Object:  note.Object,
@@ -105,7 +111,7 @@ func (h *Handler) StartMessageWorker() {
 								create := Create{
 									Context: []string{"https://www.w3.org/ns/activitystreams"},
 									Type:    "Create",
-									ID:      "https://" + h.config.Concurrent.FQDN + "/ap/note/" + streambody.ID + "/activity",
+									ID:      "https://" + h.config.Concurrent.FQDN + "/ap/note/" + messageID + "/activity",
 									Actor:   "https://" + h.config.Concurrent.FQDN + "/ap/acct/" + job.PublisherUserID,
 									To:      []string{"https://www.w3.org/ns/activitystreams#Public"},
 									Object: note,
@@ -161,13 +167,13 @@ func (h *Handler) StartAssociationWorker(notificationStream string) {
 			continue
 		}
 
-		streambody, ok := streamEvent.Body.(core.Association)
+		associationID, ok := streamEvent.Body.(map[string]interface{})["id"].(string)
 		if !ok {
-			log.Printf("streamEvent body cast error: %v", err)
+			log.Printf("streamEvent body read id failed: %v", streamEvent.Body)
 			continue
 		}
 
-		ass, err := h.association.Get(ctx, streambody.ID)
+		ass, err := h.association.Get(ctx, associationID)
 		if err != nil {
 			log.Printf("error: %v", err)
 		}
