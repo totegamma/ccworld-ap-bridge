@@ -9,7 +9,6 @@ import (
 	"github.com/totegamma/concurrent/x/association"
 	"github.com/totegamma/concurrent/x/message"
 	"github.com/totegamma/concurrent/x/stream"
-	"github.com/totegamma/concurrent/x/core"
 )
 
 func (h *Handler) StartMessageWorker() {
