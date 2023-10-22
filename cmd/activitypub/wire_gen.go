@@ -7,6 +7,7 @@
 package main
 
 import (
+	"github.com/bradfitz/gomemcache/memcache"
 	"github.com/redis/go-redis/v9"
 	"github.com/totegamma/ccworld-ap-bridge/x/activitypub"
 	"github.com/totegamma/concurrent/x/association"
@@ -30,10 +31,10 @@ func SetupAuthService(db *gorm.DB, config util.Config) auth.Service {
 	return authService
 }
 
-func SetupActivitypubHandler(db *gorm.DB, rdb *redis.Client, config util.Config, apConfig activitypub.APConfig) *activitypub.Handler {
+func SetupActivitypubHandler(db *gorm.DB, rdb *redis.Client, mc *memcache.Client, config util.Config, apConfig activitypub.APConfig) *activitypub.Handler {
 	repository := activitypub.NewRepository(db)
 	messageRepository := message.NewRepository(db)
-	streamRepository := stream.NewRepository(db)
+	streamRepository := stream.NewRepository(db, mc, config)
 	entityRepository := entity.NewRepository(db)
 	service := entity.NewService(entityRepository, config)
 	streamService := stream.NewService(rdb, streamRepository, service, config)

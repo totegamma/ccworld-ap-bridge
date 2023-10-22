@@ -1,1 +1,3 @@
-workerPrivateKey: 993e646eb69de9db42ef10eba23a18ba256c8a9befde6b98436e667523916cc1
+proxy:
+  privateKey: 993e646eb69de9db42ef10eba23a18ba256c8a9befde6b98436e667523916cc1
+  notificationStream: cjsm28p9d3gio3s9rpfg@con1.kokopi.me

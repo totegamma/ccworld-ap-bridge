@@ -1,0 +1,13 @@
+version: "3"
+
+services:
+  ccworld-ap-bridge:
+    build:
+      context: .
+      dockerfile: ./cmd/activitypub/Dockerfile
+    restart: always
+    ports:
+      - "8070:8000"
+    volumes:
+      - ./config:/etc/concurrent/:ro
+

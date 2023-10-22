@@ -15,6 +15,7 @@ import (
 	"github.com/totegamma/concurrent/x/message"
 	"github.com/totegamma/concurrent/x/stream"
 	"github.com/totegamma/concurrent/x/util"
+	"github.com/bradfitz/gomemcache/memcache"
 )
 
 func SetupAuthService(db *gorm.DB, config util.Config) auth.Service {
@@ -22,7 +23,7 @@ func SetupAuthService(db *gorm.DB, config util.Config) auth.Service {
 	return nil
 }
 
-func SetupActivitypubHandler(db *gorm.DB, rdb *redis.Client, config util.Config, apConfig activitypub.APConfig) *activitypub.Handler {
+func SetupActivitypubHandler(db *gorm.DB, rdb *redis.Client, mc *memcache.Client, config util.Config, apConfig activitypub.APConfig) *activitypub.Handler {
 	wire.Build(
 		activitypub.NewHandler,
 		activitypub.NewRepository,

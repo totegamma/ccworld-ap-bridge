@@ -9,6 +9,7 @@ import (
 	"github.com/totegamma/concurrent/x/association"
 	"github.com/totegamma/concurrent/x/message"
 	"github.com/totegamma/concurrent/x/stream"
+	"github.com/totegamma/concurrent/x/core"
 )
 
 func (h *Handler) StartMessageWorker() {
@@ -67,11 +68,17 @@ func (h *Handler) StartMessageWorker() {
 								continue
 							}
 
-							if streamEvent.Body.Author != ownerID {
+							streambody, ok := streamEvent.Body.(core.Message)
+							if !ok {
+								log.Printf("streamEvent body cast error: %v", err)
 								continue
 							}
 
-							note, err := h.MessageToNote(ctx, streamEvent.Body.ID)
+							if streambody.Author != ownerID {
+								continue
+							}
+
+							note, err := h.MessageToNote(ctx, streambody.ID)
 							if err != nil {
 								log.Printf("error: %v", err)
 								continue
@@ -81,7 +88,7 @@ func (h *Handler) StartMessageWorker() {
 								announce := Object {
 									Context: []string{"https://www.w3.org/ns/activitystreams"},
 									Type:    "Announce",
-									ID:      "https://" + h.config.Concurrent.FQDN + "/ap/note/" + streamEvent.Body.ID + "/activity",
+									ID:      "https://" + h.config.Concurrent.FQDN + "/ap/note/" + streambody.ID + "/activity",
 									Actor:   "https://" + h.config.Concurrent.FQDN + "/ap/acct/" + job.PublisherUserID,
 									Content: "",
 									Object:  note.Object,
@@ -98,7 +105,7 @@ func (h *Handler) StartMessageWorker() {
 								create := Create{
 									Context: []string{"https://www.w3.org/ns/activitystreams"},
 									Type:    "Create",
-									ID:      "https://" + h.config.Concurrent.FQDN + "/ap/note/" + streamEvent.Body.ID + "/activity",
+									ID:      "https://" + h.config.Concurrent.FQDN + "/ap/note/" + streambody.ID + "/activity",
 									Actor:   "https://" + h.config.Concurrent.FQDN + "/ap/acct/" + job.PublisherUserID,
 									To:      []string{"https://www.w3.org/ns/activitystreams#Public"},
 									Object: note,
@@ -154,7 +161,13 @@ func (h *Handler) StartAssociationWorker(notificationStream string) {
 			continue
 		}
 
-		ass, err := h.association.Get(ctx, streamEvent.Body.ID)
+		streambody, ok := streamEvent.Body.(core.Association)
+		if !ok {
+			log.Printf("streamEvent body cast error: %v", err)
+			continue
+		}
+
+		ass, err := h.association.Get(ctx, streambody.ID)
 		if err != nil {
 			log.Printf("error: %v", err)
 		}

@@ -1,0 +1,41 @@
+server:
+  dsn: "host=host.docker.internal user=postgres password=postgres dbname=concurrent port=5432 sslmode=disable"
+  redisAddr: "host.docker.internal:6379"
+  traceEndpoint: "localhost:4318"
+  enableTrace: false
+  logpath: "" # empty for default(/var/log/concurrent)
+  captchaSitekey: "6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI"
+  captchaSecret: "6LeIxAcTAAAAAGG-vFI1TnRWxMZNFuojJ4WifJWe"
+
+concurrent:
+  # fqdn is instance ID
+  # It is really hard and not recommended to change this value after node started
+  fqdn: con1.kokopi.me
+  # 'open' or 'invite' or 'close'
+  registration: open
+  # server agent account
+  # it is handy to generate these info with concurrent.world devtool
+  ccid: CC1d2b5f1fE6Aa19c030B3148F87C0CA4DD269c325
+  publickey: 04212ec2215d6182b2f57b3aef43611fb6afb117f32d0d2a897aeb4ab469cfb240f4067c90bb3ad2047156c433bd4f89bcf514ef0f878746449d811562b6119923
+  privatekey: 17bfb1363aa33b4a476d01713b3bf74ff35f3bf8a070924e7c2c06d7333afdd6
+  # server admin CCIDs
+  admins:
+    - CC3994086dC7E9ce23c60AA0Af8E0B57782617B0Ac
+    - CC132f653a341468379D803c2BC63CBE4C1AC8759F
+
+profile:
+  nickname: concurrent-domain
+  description: domain description
+  logo: ''
+  wordmark: ''
+  themeColor: '#20193b'
+  rules: |
+    - 他のユーザーにリスペクトを持って接しましょう
+      Treat everyone with respect
+    - スパムは禁止です
+      No spamming
+    - 攻撃的なプロフィール名・画像はやめましょう
+      No offensive names and profile pictures
+  tosURL: ''
+  maintainerName: notset
+  maintainerEmail: notset@example.com

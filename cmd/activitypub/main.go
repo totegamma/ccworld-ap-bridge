@@ -11,6 +11,9 @@ import (
 	"os"
 	"path/filepath"
 
+
+	"github.com/bradfitz/gomemcache/memcache"
+
 	"github.com/labstack/echo-contrib/echoprometheus"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -108,6 +111,14 @@ func main() {
 		panic("failed to setup tracing plugin")
 	}
 
+
+	mc := memcache.New(config.Server.MemcachedAddr)
+	log.Println("config.Server.MemcachedAddr", config.Server.MemcachedAddr)
+	if err != nil {
+		panic("failed to connect memcached")
+	}
+	defer mc.Close()
+
 	// Migrate the schema
 	log.Println("start migrate")
 	db.AutoMigrate(
@@ -137,7 +148,7 @@ func main() {
 	}
 
 	authService := SetupAuthService(db, config)
-	activitypubHandler := SetupActivitypubHandler(db, rdb, config, apConf)
+	activitypubHandler := SetupActivitypubHandler(db, rdb, mc, config, apConf)
 
 	e.GET("/.well-known/webfinger", activitypubHandler.WebFinger)
 	e.GET("/.well-known/nodeinfo", activitypubHandler.NodeInfoWellKnown)
