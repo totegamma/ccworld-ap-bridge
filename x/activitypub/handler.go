@@ -1054,7 +1054,7 @@ func (h Handler) NodeInfo(c echo.Context) error {
 			Version: util.GetGitShortHash(),
 		},
 		Protocols: []string{
-			"concurrent",
+			"concurrentsub",
 			"activitypub",
 		},
 		OpenRegistrations: h.config.Concurrent.Registration == "open",
