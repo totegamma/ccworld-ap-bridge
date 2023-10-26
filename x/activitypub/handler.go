@@ -748,6 +748,7 @@ func (h Handler) Follow(c echo.Context) error {
 
 	targetActor, err := ResolveActor(ctx, targetID)
 	if err != nil {
+		log.Println("resolve actor error", err)
 		span.RecordError(err)
 		return c.String(http.StatusNotFound, "entity not found")
 	}

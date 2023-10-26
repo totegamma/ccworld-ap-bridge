@@ -62,8 +62,10 @@ func ResolveActor(ctx context.Context, id string) (string, error) {
 
 	domain := split[1]
 
+	targetlink := "https://"+domain+"/.well-known/webfinger?resource=acct:"+id
+
 	var webfinger WebFinger
-	req, err := http.NewRequest("GET", "https://"+domain+"/.well-known/webfinger?resource=acct:"+id, nil)
+	req, err := http.NewRequest("GET", targetlink, nil)
 	if err != nil {
 		return "", err
 	}
@@ -84,11 +86,18 @@ func ResolveActor(ctx context.Context, id string) (string, error) {
 		return "", err
 	}
 
-	if len(webfinger.Links) == 0 {
-		return "", fmt.Errorf("no links found")
+	var aplink WebFingerLink
+	for _, link := range webfinger.Links {
+		if link.Rel == "self" {
+			aplink = link
+		}
 	}
 
-	return webfinger.Links[0].Href, nil
+	if aplink.Href == "" {
+		return "", fmt.Errorf("no ap link found")
+	}
+
+	return aplink.Href, nil
 }
 
 // PostToInbox posts a message to remote ap server.
