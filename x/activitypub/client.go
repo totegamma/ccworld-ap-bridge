@@ -17,6 +17,10 @@ import (
 	"time"
 )
 
+var (
+	UserAgent = "ConcurrentWorker/1.0"
+)
+
 // FetchPerson fetches a person from remote ap server.
 func FetchPerson(ctx context.Context, actor string) (Person, error) {
 	_, span := tracer.Start(ctx, "FetchPerson")
@@ -29,6 +33,7 @@ func FetchPerson(ctx context.Context, actor string) (Person, error) {
 	}
 	otel.GetTextMapPropagator().Inject(ctx, propagation.HeaderCarrier(req.Header))
 	req.Header.Set("Accept", "application/activity+json")
+	req.Header.Set("User-Agent", UserAgent)
 	client := new(http.Client)
 	resp, err := client.Do(req)
 	if err != nil {
@@ -71,6 +76,7 @@ func ResolveActor(ctx context.Context, id string) (string, error) {
 	}
 	otel.GetTextMapPropagator().Inject(ctx, propagation.HeaderCarrier(req.Header))
 	req.Header.Set("Accept", "application/jrd+json")
+	req.Header.Set("User-Agent", UserAgent)
 	client := new(http.Client)
 	resp, err := client.Do(req)
 	if err != nil {
@@ -114,6 +120,7 @@ func (h Handler) PostToInbox(ctx context.Context, inbox string, object interface
 	}
 	otel.GetTextMapPropagator().Inject(ctx, propagation.HeaderCarrier(req.Header))
 	req.Header.Set("Content-Type", "application/activity+json")
+	req.Header.Set("User-Agent", UserAgent)
 	req.Header.Set("Date", time.Now().UTC().Format(http.TimeFormat))
 	client := new(http.Client)
 
