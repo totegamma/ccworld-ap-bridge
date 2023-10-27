@@ -292,6 +292,11 @@ func (h Handler) Inbox(c echo.Context) error {
 
 		var obj association.SignedObject
 
+		username := person.Name
+		if len(username) == 0 {
+			username = person.PreferredUsername
+		}
+
 		if (object.Tag == nil) || (object.Tag[0].Name[0] != ':') {
 			obj = association.SignedObject{
 				Signer: h.apconfig.ProxyCCID,
@@ -299,7 +304,7 @@ func (h Handler) Inbox(c echo.Context) error {
 				Schema: "https://raw.githubusercontent.com/totegamma/concurrent-schemas/master/associations/like/0.0.1.json",
 				Body: map[string]interface{}{
 					"profileOverride": map[string]interface{}{
-						"username":    person.Name,
+						"username":    username,
 						"avatar":      person.Icon.URL,
 						"description": person.Summary,
 						"link":        object.Actor,
