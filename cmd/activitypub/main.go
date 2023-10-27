@@ -9,8 +9,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"path/filepath"
-
 
 	"github.com/bradfitz/gomemcache/memcache"
 
@@ -61,14 +59,6 @@ func main() {
 	log.Print("Config loaded! I am: ", config.Concurrent.CCID)
 
 	log.Print("ApConfig loaded! Proxy: ", apConf.ProxyCCID)
-
-	logfile, err := os.OpenFile(filepath.Join(config.Server.LogPath, "activitypub-access.log"), os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer logfile.Close()
-
-	e.Logger.SetOutput(logfile)
 
 	e.HidePort = true
 	e.HideBanner = true

@@ -197,22 +197,33 @@ func (h Handler) Inbox(c echo.Context) error {
 		return c.String(http.StatusBadRequest, "Invalid request body")
 	}
 
+	// testdump
+	objdump, err := json.Marshal(object)
+	if err != nil {
+		span.RecordError(err)
+		return c.String(http.StatusInternalServerError, "error marshalling object")
+	}
+	fmt.Println(string(objdump))
+
 	switch object.Type {
 	case "Follow":
 
 		id := c.Param("id")
 		if id == "" {
+			log.Println("Invalid username")
 			return c.String(http.StatusBadRequest, "Invalid username")
 		}
 
 		_, err := h.repo.GetEntityByID(ctx, id)
 		if err != nil {
+			log.Println("entity not found", err)
 			span.RecordError(err)
 			return c.String(http.StatusNotFound, "entity not found")
 		}
 
 		requester, err := FetchPerson(ctx, object.Actor)
 		if err != nil {
+			log.Println("error fetching person", err)
 			span.RecordError(err)
 			return c.String(http.StatusBadRequest, "Invalid request body")
 		}
@@ -229,6 +240,7 @@ func (h Handler) Inbox(c echo.Context) error {
 
 		err = h.PostToInbox(ctx, requester.Inbox, accept, userID)
 		if err != nil {
+			log.Println("error posting to inbox", err)
 			span.RecordError(err)
 			return c.String(http.StatusInternalServerError, "Internal server error")
 		}
@@ -236,12 +248,14 @@ func (h Handler) Inbox(c echo.Context) error {
 		// check follow already exists
 		_, err = h.repo.GetFollowerByID(ctx, object.ID)
 		if err == nil {
+			log.Println("follow already exists")
 			return c.String(http.StatusOK, "follow already exists")
 		}
 
 		// dump object
 		b, err := json.Marshal(object)
 		if err != nil {
+			log.Println("error dumping object", err)
 			span.RecordError(err)
 			return c.String(http.StatusInternalServerError, "Internal server error (object dump error)")
 		}
@@ -255,6 +269,7 @@ func (h Handler) Inbox(c echo.Context) error {
 			PublisherUserID:     userID,
 		})
 		if err != nil {
+			log.Println("error saving follow", err)
 			span.RecordError(err)
 			return c.String(http.StatusInternalServerError, "Internal server error (save follow error)")
 		}
@@ -475,6 +490,11 @@ func (h Handler) Inbox(c echo.Context) error {
 				return c.String(http.StatusOK, "note too long")
 			}
 
+			username := person.Name
+			if len(username) == 0 {
+				username = person.PreferredUsername
+			}
+
 			b := message.SignedObject{
 				Signer: h.apconfig.ProxyCCID,
 				Type:   "Message",
@@ -482,7 +502,7 @@ func (h Handler) Inbox(c echo.Context) error {
 				Body: map[string]interface{}{
 					"body": content,
 					"profileOverride": map[string]interface{}{
-						"username":    person.Name,
+						"username":    username,
 						"avatar":      person.Icon.URL,
 						"description": person.Summary,
 						"link":        object.Actor,
@@ -607,7 +627,7 @@ func (h Handler) Inbox(c echo.Context) error {
 
 			// check follow already deleted
 			_, err = h.repo.GetFollowerByTuple(ctx, local, remote)
-			if err != nil {
+			if err == nil {
 				return c.String(http.StatusOK, "follow already undoed")
 			}
 			h.repo.RemoveFollower(ctx, local, remote)
@@ -771,16 +791,9 @@ func (h Handler) Follow(c echo.Context) error {
 		ID:      followID,
 	}
 
-	// debug: print follow object
-	b, err := json.Marshal(followObject)
-	if err != nil {
-		span.RecordError(err)
-		return c.String(http.StatusInternalServerError, "Internal server error (json marshal error)")
-	}
-	log.Println("Follow Object", string(b))
-
 	err = h.PostToInbox(ctx, targetPerson.Inbox, followObject, entity.ID)
 	if err != nil {
+		log.Println("post to inbox error", err)
 		span.RecordError(err)
 		return c.String(http.StatusInternalServerError, "Internal server error")
 	}
@@ -792,6 +805,11 @@ func (h Handler) Follow(c echo.Context) error {
 	}
 
 	err = h.repo.SaveFollow(ctx, follow)
+	if err != nil {
+		log.Println("save follow error", err)
+		span.RecordError(err)
+		return c.String(http.StatusInternalServerError, "Internal server error")
+	}
 
 	return c.JSON(http.StatusOK, echo.Map{"status": "ok", "content": follow})
 }
