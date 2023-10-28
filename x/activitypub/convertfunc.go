@@ -224,6 +224,11 @@ func (h Handler) NoteToMessage (ctx context.Context, object Note, person Person,
 		username = person.PreferredUsername
 	}
 
+	date, err := time.Parse(time.RFC3339Nano, object.Published)
+	if err != nil {
+		date = time.Now()
+	}
+
 	b := message.SignedObject{
 		Signer: h.apconfig.ProxyCCID,
 		Type:   "Message",
@@ -243,6 +248,7 @@ func (h Handler) NoteToMessage (ctx context.Context, object Note, person Person,
 			"apObjectRef":      object.ID,
 			"apPublisherInbox": person.Inbox,
 		},
+		SignedAt: date,
 	}
 
 	objb, err := json.Marshal(b)
