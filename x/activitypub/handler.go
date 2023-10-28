@@ -246,20 +246,11 @@ func (h Handler) Inbox(c echo.Context) error {
 		}
 
 		// check follow already exists
-		_, err = h.repo.GetFollowerByID(ctx, object.ID)
+		_, err = h.repo.GetFollowerByTuple(ctx, userID, requester.ID)
 		if err == nil {
 			log.Println("follow already exists")
 			return c.String(http.StatusOK, "follow already exists")
 		}
-
-		// dump object
-		b, err := json.Marshal(object)
-		if err != nil {
-			log.Println("error dumping object", err)
-			span.RecordError(err)
-			return c.String(http.StatusInternalServerError, "Internal server error (object dump error)")
-		}
-		log.Println(string(b))
 
 		// save follow
 		err = h.repo.SaveFollower(ctx, ApFollower{
@@ -282,6 +273,16 @@ func (h Handler) Inbox(c echo.Context) error {
 		if err != nil {
 			span.RecordError(err)
 			return c.String(http.StatusOK, "message not found")
+		}
+
+		err = h.repo.CreateApObjectReference(ctx, ApObjectReference{
+			ApObjectID:   object.ID,
+			CcObjectID:   "",
+		})
+
+		if err != nil {
+			span.RecordError(err)
+			return c.String(http.StatusOK, "like already exists")
 		}
 
 		person, err := FetchPerson(ctx, object.Actor)
@@ -352,11 +353,17 @@ func (h Handler) Inbox(c echo.Context) error {
 			return c.String(http.StatusOK, "Internal server error (sign error)")
 		}
 
-		_, err = h.association.PostAssociation(ctx, objstr, objsig, []string{}, "messages")
+		created, err := h.association.PostAssociation(ctx, objstr, objsig, []string{}, "messages")
 		if err != nil {
 			span.RecordError(err)
 			return c.String(http.StatusOK, "Internal server error (post association error)")
 		}
+
+		// save reference
+		err = h.repo.UpdateApObjectReference(ctx, ApObjectReference{
+			ApObjectID:   object.ID,
+			CcObjectID:   created.ID,
+		})
 
 		return c.String(http.StatusOK, "like accepted")
 
@@ -637,6 +644,32 @@ func (h Handler) Inbox(c echo.Context) error {
 			}
 			h.repo.RemoveFollower(ctx, local, remote)
 			return c.String(http.StatusOK, "OK")
+
+		case "Like":
+			likeID, ok := undoObject["id"].(string)
+			if !ok {
+				log.Println("Invalid undo object", object.Object)
+				return c.String(http.StatusOK, "Invalid request body")
+			}
+			deleteRef, err := h.repo.GetApObjectReferenceByApObjectID(ctx, likeID)
+			if err != nil {
+				span.RecordError(err)
+				return c.String(http.StatusNotFound, "like not found")
+			}
+
+			_, err = h.association.Delete(ctx, deleteRef.CcObjectID)
+			if err != nil {
+				span.RecordError(err)
+				return c.String(http.StatusInternalServerError, "Internal server error (delete like error)")
+			}
+
+			err = h.repo.DeleteApObjectReference(ctx, deleteRef.ApObjectID)
+			if err != nil {
+				span.RecordError(err)
+				return c.String(http.StatusInternalServerError, "Internal server error (delete reference error)")
+			}
+			return c.String(http.StatusOK, "like undoed")
+
 		default:
 			// print request body
 			b, err := json.Marshal(object)

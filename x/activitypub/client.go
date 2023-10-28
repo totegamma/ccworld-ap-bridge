@@ -159,7 +159,7 @@ func (h Handler) PostToInbox(ctx context.Context, inbox string, object interface
 	if err != nil {
 		log.Println(err)
 	}
-	log.Println(string(body))
+	log.Printf("POST %s [%d]: %s", inbox, resp.StatusCode, string(body))
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 400 {
 		return fmt.Errorf("error posting to inbox: %d", resp.StatusCode)

@@ -12,7 +12,7 @@ require (
 	github.com/labstack/echo/v4 v4.11.1
 	github.com/redis/go-redis/extra/redisotel/v9 v9.0.5
 	github.com/redis/go-redis/v9 v9.1.0
-	github.com/totegamma/concurrent v0.3.0
+	github.com/totegamma/concurrent v0.3.6
 	go.opentelemetry.io/contrib/instrumentation/github.com/labstack/echo/otelecho v0.43.0
 	go.opentelemetry.io/otel v1.17.0
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp v1.17.0
