@@ -2,10 +2,13 @@ package activitypub
 
 import (
 	"time"
+	"strings"
 	"errors"
 	"regexp"
 	"context"
 	"encoding/json"
+	"github.com/totegamma/concurrent/x/core"
+	"github.com/totegamma/concurrent/x/util"
 	"github.com/totegamma/concurrent/x/message"
 )
 
@@ -186,5 +189,78 @@ func (h Handler) MessageToNote(ctx context.Context, messageID string) (Note, err
 	} else {
 		return Note{}, errors.New("invalid schema")
 	}
+}
+
+func (h Handler) NoteToMessage (ctx context.Context, object Note, person Person, destStreams []string) (core.Message, error) {
+
+	content := object.Content
+
+	for _, attachment := range object.Attachment {
+		if attachment.Type == "Document" {
+			content += "\n\n![image](" + attachment.URL + ")"
+		}
+	}
+
+	var emojis map[string]WorldEmoji = make(map[string]WorldEmoji)
+	for _, tag := range object.Tag {
+		if tag.Type == "Emoji" {
+			name := strings.Trim(tag.Name, ":")
+			emojis[name] = WorldEmoji{
+				ImageURL: tag.Icon.URL,
+			}
+		}
+	}
+
+	if len(content) == 0 {
+		return core.Message{}, errors.New("empty note")
+	}
+
+	if len(content) > 4096 {
+		return core.Message{}, errors.New("note too long")
+	}
+
+	username := person.Name
+	if len(username) == 0 {
+		username = person.PreferredUsername
+	}
+
+	b := message.SignedObject{
+		Signer: h.apconfig.ProxyCCID,
+		Type:   "Message",
+		Schema: "https://raw.githubusercontent.com/totegamma/concurrent-schemas/master/messages/note/0.0.1.json",
+		Body: map[string]interface{}{
+			"body": content,
+			"profileOverride": map[string]interface{}{
+				"username":    username,
+				"avatar":      person.Icon.URL,
+				"description": person.Summary,
+				"link":        person.URL,
+			},
+			"emojis": emojis,
+		},
+		Meta: map[string]interface{}{
+			"apActor":          person.URL,
+			"apObjectRef":      object.ID,
+			"apPublisherInbox": person.Inbox,
+		},
+	}
+
+	objb, err := json.Marshal(b)
+	if err != nil {
+		return core.Message{}, err
+	}
+
+	objstr := string(objb)
+	objsig, err := util.SignBytes(objb, h.apconfig.Proxy.PrivateKey)
+	if err != nil {
+		return core.Message{}, err
+	}
+
+	created, err := h.message.PostMessage(ctx, objstr, objsig, destStreams)
+	if err != nil {
+		return core.Message{}, err
+	}
+
+	return created, nil
 }
 

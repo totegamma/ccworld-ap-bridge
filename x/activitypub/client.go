@@ -21,6 +21,39 @@ var (
 	UserAgent = "ConcurrentWorker/1.0"
 )
 
+// FetchNote fetches a note from remote ap server.
+func FetchNote(ctx context.Context, noteID string) (Note, error) {
+	_, span := tracer.Start(ctx, "FetchNote")
+	defer span.End()
+
+	var note Note
+	req, err := http.NewRequest("GET", noteID, nil)
+	if err != nil {
+		return note, err
+	}
+	otel.GetTextMapPropagator().Inject(ctx, propagation.HeaderCarrier(req.Header))
+	req.Header.Set("Accept", "application/activity+json")
+	req.Header.Set("User-Agent", UserAgent)
+	client := new(http.Client)
+	resp, err := client.Do(req)
+	if err != nil {
+		return note, err
+	}
+	defer resp.Body.Close()
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return note, err
+	}
+
+	err = json.Unmarshal(body, &note)
+	if err != nil {
+		return note, err
+	}
+
+	return note, nil
+}
+
 // FetchPerson fetches a person from remote ap server.
 func FetchPerson(ctx context.Context, actor string) (Person, error) {
 	_, span := tracer.Start(ctx, "FetchPerson")

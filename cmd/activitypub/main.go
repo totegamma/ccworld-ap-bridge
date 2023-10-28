@@ -162,6 +162,7 @@ func main() {
 	apR.POST("/api/follow/:id", activitypubHandler.Follow, authService.Restrict(auth.ISLOCAL))     // ISLOCAL
 	apR.DELETE("/api/follow/:id", activitypubHandler.UnFollow, authService.Restrict(auth.ISLOCAL)) // ISLOCAL
 	apR.GET("/api/stats", activitypubHandler.GetStats, authService.Restrict(auth.ISLOCAL))         // ISLOCAL
+	apR.GET("/api/import", activitypubHandler.ImportNote, authService.Restrict(auth.ISLOCAL))      // ISLOCAL
 
 	e.GET("/health", func(c echo.Context) (err error) {
 		ctx := c.Request().Context()

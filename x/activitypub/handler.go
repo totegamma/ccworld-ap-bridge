@@ -434,118 +434,22 @@ func (h Handler) Inbox(c echo.Context) error {
 				return c.String(http.StatusBadRequest, "failed to fetch actor")
 			}
 
-			content, ok := createObject["content"].(string)
-			if !ok {
-				log.Println("Invalid create object", object.Object)
-				return c.String(http.StatusBadRequest, "Invalid request body")
-			}
-
-			attachments, ok := createObject["attachment"].([]interface{})
-			if ok {
-				for _, attachment := range attachments {
-					attachment, ok := attachment.(map[string]interface{})
-					if !ok {
-						continue
-					}
-					atype, ok := attachment["type"].(string)
-					if !ok {
-						continue
-					}
-					aurl, ok := attachment["url"].(string)
-					if !ok {
-						continue
-					}
-					if atype == "Document" {
-						content += "\n\n![image](" + aurl + ")"
-					}
-				}
-			}
-
-			var emojis map[string]WorldEmoji = make(map[string]WorldEmoji)
-			tags, ok := createObject["tag"].([]interface{})
-			if ok {
-				for _, tag := range tags {
-					tag, ok := tag.(map[string]interface{})
-					if !ok {
-						continue
-					}
-					tagtype, ok := tag["type"].(string)
-					if !ok {
-						continue
-					}
-					if tagtype == "Emoji" {
-						name, ok := tag["name"].(string)
-						if !ok {
-							continue
-						}
-						name = strings.Trim(name, ":")
-						icon, ok := tag["icon"].(map[string]interface{})
-						if !ok {
-							continue
-						}
-						url, ok := icon["url"].(string)
-						if !ok {
-							continue
-						}
-						emojis[name] = WorldEmoji{
-							ImageURL: url,
-						}
-					}
-				}
-			}
-
-			if len(content) == 0 {
-				return c.String(http.StatusOK, "empty note")
-			}
-
-			if len(content) > 4096 {
-				return c.String(http.StatusOK, "note too long")
-			}
-
-			username := person.Name
-			if len(username) == 0 {
-				username = person.PreferredUsername
-			}
-
-			b := message.SignedObject{
-				Signer: h.apconfig.ProxyCCID,
-				Type:   "Message",
-				Schema: "https://raw.githubusercontent.com/totegamma/concurrent-schemas/master/messages/note/0.0.1.json",
-				Body: map[string]interface{}{
-					"body": content,
-					"profileOverride": map[string]interface{}{
-						"username":    username,
-						"avatar":      person.Icon.URL,
-						"description": person.Summary,
-						"link":        object.Actor,
-					},
-					"emojis": emojis,
-				},
-				Meta: map[string]interface{}{
-					"apActor":          object.Actor,
-					"apObjectRef":      createID,
-					"apPublisherInbox": person.Inbox,
-				},
-			}
-
-			objb, err := json.Marshal(b)
+			// convertObject
+			noteBytes, err := json.Marshal(createObject)
 			if err != nil {
+				log.Println("Internal server error (json marshal error)", err)
 				span.RecordError(err)
 				return c.String(http.StatusInternalServerError, "Internal server error (json marshal error)")
 			}
-
-			objstr := string(objb)
-			objsig, err := util.SignBytes(objb, h.apconfig.Proxy.PrivateKey)
+			var note Note
+			err = json.Unmarshal(noteBytes, &note)
 			if err != nil {
+				log.Println("Internal server error (json unmarshal error)", err)
 				span.RecordError(err)
-				return c.String(http.StatusInternalServerError, "Internal server error (sign error)")
+				return c.String(http.StatusInternalServerError, "Internal server error (json unmarshal error)")
 			}
 
-			created, err := h.message.PostMessage(ctx, objstr, objsig, destStreams)
-			if err != nil {
-				span.RecordError(err)
-				return c.String(http.StatusInternalServerError, "Internal server error (post message error)")
-			}
+			created, err := h.NoteToMessage(ctx, note, person, destStreams)
 
 			// save reference
 			err = h.repo.UpdateApObjectReference(ctx, ApObjectReference{
@@ -1130,6 +1034,66 @@ func (h Handler) NodeInfo(c echo.Context) error {
 			LocalPosts: messages,
 		},
 	})
+}
+
+
+// Import handles import requests.
+func (h Handler) ImportNote(c echo.Context) error {
+	ctx, span := tracer.Start(c.Request().Context(), "ImportNote")
+	defer span.End()
+
+	noteID := c.QueryParams().Get("note")
+	if noteID == "" {
+		log.Println("invalid noteID: ", noteID)
+		return c.String(http.StatusBadRequest, "Invalid noteID")
+	}
+
+	existing, err := h.repo.GetApObjectReferenceByApObjectID(ctx, noteID)
+	if err == nil {
+		message, err := h.message.Get(ctx, existing.CcObjectID)
+		if err == nil {
+			return c.JSON(http.StatusOK, echo.Map{"status": "ok", "content": message})
+		}
+		log.Println("message not found: ", existing.CcObjectID, err)
+		h.repo.DeleteApObjectReference(ctx, noteID)
+	}
+
+	// fetch note
+	note, err := FetchNote(ctx, noteID)
+	if err != nil {
+		log.Println(err)
+		span.RecordError(err)
+		return c.String(http.StatusInternalServerError, "Internal server error")
+	}
+
+	// save person
+	person, err := FetchPerson(ctx, note.AttributedTo)
+	if err != nil {
+		log.Println(err)
+		span.RecordError(err)
+		return c.String(http.StatusInternalServerError, "Internal server error")
+	}
+
+	// save note as concurrent message
+	created, err := h.NoteToMessage(ctx, note, person, []string{})
+	if err != nil {
+		log.Println(err)
+		span.RecordError(err)
+		return c.String(http.StatusInternalServerError, "Internal server error")
+	}
+
+	// save reference
+	err = h.repo.CreateApObjectReference(ctx, ApObjectReference{
+		ApObjectID: noteID,
+		CcObjectID: created.ID,
+	})
+	if err != nil {
+		log.Println(err)
+		span.RecordError(err)
+		return c.String(http.StatusInternalServerError, "Internal server error")
+	}
+
+	return c.JSON(http.StatusOK, echo.Map{"status": "ok", "content": created})
 }
 
 // PrintRequest prints the request body.
