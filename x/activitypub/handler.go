@@ -326,7 +326,7 @@ func (h Handler) Inbox(c echo.Context) error {
 					"shortcode": object.Tag[0].Name,
 					"imageUrl":  object.Tag[0].Icon.URL,
 					"profileOverride": map[string]interface{}{
-						"username":    person.Name,
+						"username":    username,
 						"avatar":      person.Icon.URL,
 						"description": person.Summary,
 						"link":        object.Actor,
