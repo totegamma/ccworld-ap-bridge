@@ -1,7 +1,11 @@
 package activitypub
 
 import (
+	"fmt"
+	"crypto/x509"
+	"encoding/pem"
 	"context"
+	"crypto/rsa"
 	"gorm.io/gorm"
 )
 
@@ -244,5 +248,19 @@ func (r *Repository) DeleteApObjectReference(ctx context.Context, ApObjectID str
 	defer span.End()
 
 	return r.db.WithContext(ctx).Where("ap_object_id = ?", ApObjectID).Delete(&ApObjectReference{}).Error
+}
+
+func (r *Repository) LoadKey(ctx context.Context, entity ApEntity) (*rsa.PrivateKey, error) {
+	block, _ := pem.Decode([]byte(entity.Privatekey))
+	if block == nil {
+		return &rsa.PrivateKey{}, fmt.Errorf("failed to parse PEM block containing the key")
+	}
+
+	priv, err := x509.ParsePKCS1PrivateKey(block.Bytes)
+	if err != nil {
+		return &rsa.PrivateKey{}, fmt.Errorf("failed to parse DER encoded private key: " + err.Error())
+	}
+
+	return priv, nil
 }
 

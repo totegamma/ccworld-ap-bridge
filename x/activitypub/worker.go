@@ -100,7 +100,7 @@ func (h *Handler) StartMessageWorker() {
                                     To:      []string{"https://www.w3.org/ns/activitystreams#Public"},
 								}
 
-								err = h.PostToInbox(ctx, job.SubscriberInbox, announce, job.PublisherUserID)
+								err = h.PostToInbox(ctx, job.SubscriberInbox, announce, entity)
 								if err != nil {
 									log.Printf("error: %v", err)
 									continue
@@ -116,7 +116,7 @@ func (h *Handler) StartMessageWorker() {
 									Object: note,
 								}
 
-								err = h.PostToInbox(ctx, job.SubscriberInbox, create, job.PublisherUserID)
+								err = h.PostToInbox(ctx, job.SubscriberInbox, create, entity)
 								if err != nil {
 									log.Printf("error: %v", err)
 									continue
@@ -261,7 +261,7 @@ func (h *Handler) StartAssociationWorker(notificationStream string) {
 				Object:  ref,
 			}
 
-			err = h.PostToInbox(ctx, dest, like, assauthor.ID)
+			err = h.PostToInbox(ctx, dest, like, assauthor)
 			if err != nil {
 				log.Printf("error: %v", err)
 				continue
@@ -314,7 +314,7 @@ func (h *Handler) StartAssociationWorker(notificationStream string) {
 				},
 			}
 
-			err = h.PostToInbox(ctx, dest, create, assauthor.ID)
+			err = h.PostToInbox(ctx, dest, create, assauthor)
 			if err != nil {
 				log.Printf("error: %v", err)
 				continue
@@ -362,7 +362,7 @@ func (h *Handler) StartAssociationWorker(notificationStream string) {
 					Content: "",
 					Object:  ref,
 				}
-				err = h.PostToInbox(ctx, dest, announce, assauthor.ID)
+				err = h.PostToInbox(ctx, dest, announce, assauthor)
 				if err != nil {
 					log.Printf("error: %v", err)
 					continue
@@ -383,7 +383,7 @@ func (h *Handler) StartAssociationWorker(notificationStream string) {
 					},
 				}
 
-				err = h.PostToInbox(ctx, dest, create, assauthor.ID)
+				err = h.PostToInbox(ctx, dest, create, assauthor)
 				if err != nil {
 					log.Printf("error: %v", err)
 					continue

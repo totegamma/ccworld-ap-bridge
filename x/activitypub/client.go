@@ -3,18 +3,17 @@ package activitypub
 import (
 	"bytes"
 	"context"
-	"crypto/x509"
 	"encoding/json"
-	"encoding/pem"
 	"fmt"
-	"github.com/go-fed/httpsig"
-	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/propagation"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/go-fed/httpsig"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/propagation"
 )
 
 var (
@@ -22,7 +21,7 @@ var (
 )
 
 // FetchNote fetches a note from remote ap server.
-func FetchNote(ctx context.Context, noteID string) (Note, error) {
+func (h Handler)FetchNote(ctx context.Context, noteID string, execEntity ApEntity) (Note, error) {
 	_, span := tracer.Start(ctx, "FetchNote")
 	defer span.End()
 
@@ -33,15 +32,33 @@ func FetchNote(ctx context.Context, noteID string) (Note, error) {
 	}
 	otel.GetTextMapPropagator().Inject(ctx, propagation.HeaderCarrier(req.Header))
 	req.Header.Set("Accept", "application/activity+json")
+	req.Header.Set("Date", time.Now().UTC().Format(http.TimeFormat))
 	req.Header.Set("User-Agent", UserAgent)
 	client := new(http.Client)
+
+	priv, err := h.repo.LoadKey(ctx, execEntity)
+	if err != nil {
+		log.Println(err)
+		return note, err
+	}
+
+	prefs := []httpsig.Algorithm{httpsig.RSA_SHA256}
+	digestAlgorithm := httpsig.DigestSha256
+	headersToSign := []string{httpsig.RequestTarget, "date"}
+	signer, _, err := httpsig.NewSigner(prefs, digestAlgorithm, headersToSign, httpsig.Signature, 0)
+	if err != nil {
+		log.Println(err)
+		return note, err
+	}
+	err = signer.SignRequest(priv, "https://"+h.config.Concurrent.FQDN+"/ap/acct/"+execEntity.ID+"#main-key", req, nil)
+
 	resp, err := client.Do(req)
 	if err != nil {
 		return note, err
 	}
 	defer resp.Body.Close()
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return note, err
 	}
@@ -55,7 +72,7 @@ func FetchNote(ctx context.Context, noteID string) (Note, error) {
 }
 
 // FetchPerson fetches a person from remote ap server.
-func FetchPerson(ctx context.Context, actor string) (Person, error) {
+func (h Handler)FetchPerson(ctx context.Context, actor string, execEntity ApEntity) (Person, error) {
 	_, span := tracer.Start(ctx, "FetchPerson")
 	defer span.End()
 
@@ -66,15 +83,34 @@ func FetchPerson(ctx context.Context, actor string) (Person, error) {
 	}
 	otel.GetTextMapPropagator().Inject(ctx, propagation.HeaderCarrier(req.Header))
 	req.Header.Set("Accept", "application/activity+json")
+	req.Header.Set("Date", time.Now().UTC().Format(http.TimeFormat))
 	req.Header.Set("User-Agent", UserAgent)
 	client := new(http.Client)
+
+	priv, err := h.repo.LoadKey(ctx, execEntity)
+	if err != nil {
+		log.Println(err)
+		return person, err
+	}
+
+	prefs := []httpsig.Algorithm{httpsig.RSA_SHA256}
+	digestAlgorithm := httpsig.DigestSha256
+	headersToSign := []string{httpsig.RequestTarget, "date"}
+	signer, _, err := httpsig.NewSigner(prefs, digestAlgorithm, headersToSign, httpsig.Signature, 0)
+	if err != nil {
+		log.Println(err)
+		return person, err
+	}
+	err = signer.SignRequest(priv, "https://"+h.config.Concurrent.FQDN+"/ap/acct/"+execEntity.ID+"#main-key", req, nil)
+
+
 	resp, err := client.Do(req)
 	if err != nil {
 		return person, err
 	}
 	defer resp.Body.Close()
 
-	body, _ := ioutil.ReadAll(resp.Body)
+	body, _ := io.ReadAll(resp.Body)
 
 	err = json.Unmarshal(body, &person)
 	if err != nil {
@@ -117,7 +153,7 @@ func ResolveActor(ctx context.Context, id string) (string, error) {
 	}
 	defer resp.Body.Close()
 
-	body, _ := ioutil.ReadAll(resp.Body)
+	body, _ := io.ReadAll(resp.Body)
 
 	err = json.Unmarshal(body, &webfinger)
 	if err != nil {
@@ -139,8 +175,10 @@ func ResolveActor(ctx context.Context, id string) (string, error) {
 	return aplink.Href, nil
 }
 
+
+
 // PostToInbox posts a message to remote ap server.
-func (h Handler) PostToInbox(ctx context.Context, inbox string, object interface{}, signUser string) error {
+func (h Handler) PostToInbox(ctx context.Context, inbox string, object interface{}, entity ApEntity) error {
 
 	objectBytes, err := json.Marshal(object)
 	if err != nil {
@@ -157,19 +195,10 @@ func (h Handler) PostToInbox(ctx context.Context, inbox string, object interface
 	req.Header.Set("Date", time.Now().UTC().Format(http.TimeFormat))
 	client := new(http.Client)
 
-	entity, err := h.repo.GetEntityByID(ctx, signUser)
+	priv, err := h.repo.LoadKey(ctx, entity)
 	if err != nil {
+		log.Println(err)
 		return err
-	}
-
-	block, _ := pem.Decode([]byte(entity.Privatekey))
-	if block == nil {
-		return fmt.Errorf("failed to parse PEM block containing the key")
-	}
-
-	priv, err := x509.ParsePKCS1PrivateKey(block.Bytes)
-	if err != nil {
-		return fmt.Errorf("failed to parse DER encoded private key: " + err.Error())
 	}
 
 	prefs := []httpsig.Algorithm{httpsig.RSA_SHA256}
@@ -180,7 +209,7 @@ func (h Handler) PostToInbox(ctx context.Context, inbox string, object interface
 		log.Println(err)
 		return err
 	}
-	err = signer.SignRequest(priv, "https://"+h.config.Concurrent.FQDN+"/ap/acct/"+signUser+"#main-key", req, objectBytes)
+	err = signer.SignRequest(priv, "https://"+h.config.Concurrent.FQDN+"/ap/acct/"+entity.ID+"#main-key", req, objectBytes)
 
 	resp, err := client.Do(req)
 	if err != nil {
@@ -188,7 +217,7 @@ func (h Handler) PostToInbox(ctx context.Context, inbox string, object interface
 		return err
 	}
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		log.Println(err)
 	}

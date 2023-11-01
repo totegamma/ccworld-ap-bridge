@@ -16,7 +16,7 @@ import (
 	"github.com/totegamma/concurrent/x/util"
 	"go.opentelemetry.io/otel"
 	"golang.org/x/exp/slices"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"net/url"
@@ -214,14 +214,14 @@ func (h Handler) Inbox(c echo.Context) error {
 			return c.String(http.StatusBadRequest, "Invalid username")
 		}
 
-		_, err := h.repo.GetEntityByID(ctx, id)
+		entity, err := h.repo.GetEntityByID(ctx, id)
 		if err != nil {
 			log.Println("entity not found", err)
 			span.RecordError(err)
 			return c.String(http.StatusNotFound, "entity not found")
 		}
 
-		requester, err := FetchPerson(ctx, object.Actor)
+		requester, err := h.FetchPerson(ctx, object.Actor, entity)
 		if err != nil {
 			log.Println("error fetching person", err)
 			span.RecordError(err)
@@ -238,7 +238,7 @@ func (h Handler) Inbox(c echo.Context) error {
 		split := strings.Split(object.Object.(string), "/")
 		userID := split[len(split)-1]
 
-		err = h.PostToInbox(ctx, requester.Inbox, accept, userID)
+		err = h.PostToInbox(ctx, requester.Inbox, accept, entity)
 		if err != nil {
 			log.Println("error posting to inbox", err)
 			span.RecordError(err)
@@ -269,7 +269,7 @@ func (h Handler) Inbox(c echo.Context) error {
 
 	case "Like":
 		targetID := strings.Replace(object.Object.(string), "https://"+h.config.Concurrent.FQDN+"/ap/note/", "", 1)
-		_, err := h.message.Get(ctx, targetID)
+		targetMsg, err := h.message.Get(ctx, targetID)
 		if err != nil {
 			span.RecordError(err)
 			return c.String(http.StatusOK, "message not found")
@@ -285,7 +285,13 @@ func (h Handler) Inbox(c echo.Context) error {
 			return c.String(http.StatusOK, "like already exists")
 		}
 
-		person, err := FetchPerson(ctx, object.Actor)
+		entity, err := h.repo.GetEntityByCCID(ctx, targetMsg.Author)
+		if err != nil {
+			span.RecordError(err)
+			return c.String(http.StatusOK, "entity not found")
+		}
+
+		person, err := h.FetchPerson(ctx, object.Actor, entity)
 		if err != nil {
 			span.RecordError(err)
 			return c.String(http.StatusOK, "failed to fetch actor")
@@ -412,6 +418,7 @@ func (h Handler) Inbox(c echo.Context) error {
 				return c.String(http.StatusInternalServerError, "Internal server error (get follows error)")
 			}
 
+			var rep ApEntity
 			destStreams := []string{}
 			for _, follow := range follows {
 				entity, err := h.repo.GetEntityByID(ctx, follow.SubscriberUserID)
@@ -420,6 +427,7 @@ func (h Handler) Inbox(c echo.Context) error {
 					span.RecordError(err)
 					continue
 				}
+				rep = entity
 				destStreams = append(destStreams, entity.FollowStream)
 			}
 
@@ -428,7 +436,7 @@ func (h Handler) Inbox(c echo.Context) error {
 				return c.String(http.StatusOK, "No followers")
 			}
 
-			person, err := FetchPerson(ctx, object.Actor)
+			person, err := h.FetchPerson(ctx, object.Actor, rep)
 			if err != nil {
 				span.RecordError(err)
 				return c.String(http.StatusBadRequest, "failed to fetch actor")
@@ -715,7 +723,7 @@ func (h Handler) Follow(c echo.Context) error {
 		return c.String(http.StatusNotFound, "entity not found")
 	}
 
-	targetPerson, err := FetchPerson(ctx, targetActor)
+	targetPerson, err := h.FetchPerson(ctx, targetActor, entity)
 	if err != nil {
 		span.RecordError(err)
 		return c.String(http.StatusNotFound, "entity not found")
@@ -733,7 +741,7 @@ func (h Handler) Follow(c echo.Context) error {
 		ID:      followID,
 	}
 
-	err = h.PostToInbox(ctx, targetPerson.Inbox, followObject, entity.ID)
+	err = h.PostToInbox(ctx, targetPerson.Inbox, followObject, entity)
 	if err != nil {
 		log.Println("post to inbox error", err)
 		span.RecordError(err)
@@ -790,7 +798,7 @@ func (h Handler) UnFollow(c echo.Context) error {
 		return c.String(http.StatusNotFound, "entity not found")
 	}
 
-	targetPerson, err := FetchPerson(ctx, targetActor)
+	targetPerson, err := h.FetchPerson(ctx, targetActor, entity)
 	if err != nil {
 		span.RecordError(err)
 		return c.String(http.StatusNotFound, "entity not found")
@@ -818,7 +826,7 @@ func (h Handler) UnFollow(c echo.Context) error {
 	}
 	log.Println(string(undoJSON))
 
-	err = h.PostToInbox(ctx, targetPerson.Inbox, undoObject, entity.ID)
+	err = h.PostToInbox(ctx, targetPerson.Inbox, undoObject, entity)
 	if err != nil {
 		span.RecordError(err)
 		return c.String(http.StatusInternalServerError, "Internal server error")
@@ -1042,6 +1050,14 @@ func (h Handler) ImportNote(c echo.Context) error {
 	ctx, span := tracer.Start(c.Request().Context(), "ImportNote")
 	defer span.End()
 
+	claims := c.Get("jwtclaims").(util.JwtClaims)
+	ccid := claims.Audience
+	entity, err := h.repo.GetEntityByCCID(ctx, ccid)
+	if err != nil {
+		span.RecordError(err)
+		return c.String(http.StatusNotFound, "entity not found")
+	}
+
 	noteID := c.QueryParams().Get("note")
 	if noteID == "" {
 		log.Println("invalid noteID: ", noteID)
@@ -1059,7 +1075,7 @@ func (h Handler) ImportNote(c echo.Context) error {
 	}
 
 	// fetch note
-	note, err := FetchNote(ctx, noteID)
+	note, err := h.FetchNote(ctx, noteID, entity)
 	if err != nil {
 		log.Println(err)
 		span.RecordError(err)
@@ -1067,7 +1083,7 @@ func (h Handler) ImportNote(c echo.Context) error {
 	}
 
 	// save person
-	person, err := FetchPerson(ctx, note.AttributedTo)
+	person, err := h.FetchPerson(ctx, note.AttributedTo, entity)
 	if err != nil {
 		log.Println(err)
 		span.RecordError(err)
@@ -1100,7 +1116,7 @@ func (h Handler) ImportNote(c echo.Context) error {
 func (h Handler) PrintRequest(c echo.Context) error {
 
 	body := c.Request().Body
-	bytes, err := ioutil.ReadAll(body)
+	bytes, err := io.ReadAll(body)
 	if err != nil {
 		return c.String(http.StatusInternalServerError, "Internal server error")
 	}
