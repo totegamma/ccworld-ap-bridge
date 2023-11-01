@@ -60,6 +60,8 @@ func (h *Handler) StartMessageWorker() {
 								continue
 							}
 
+							log.Printf("[worker %v] message received!\n", job.ID)
+
 							var streamEvent stream.Event
 							err = json.Unmarshal([]byte(pubsubMsg.Payload), &streamEvent)
 							if err != nil {
@@ -80,6 +82,7 @@ func (h *Handler) StartMessageWorker() {
 							}
 
 							if messageAuthor != ownerID {
+								log.Printf("message author is not owner: %v", messageAuthor)
 								continue
 							}
 
@@ -105,6 +108,7 @@ func (h *Handler) StartMessageWorker() {
 									log.Printf("error: %v", err)
 									continue
 								}
+								log.Printf("[worker %v] created", job.ID)
 							} else {
 
 								create := Create{
@@ -121,6 +125,7 @@ func (h *Handler) StartMessageWorker() {
 									log.Printf("error: %v", err)
 									continue
 								}
+								log.Printf("[worker %v] created", job.ID)
 							}
 						}
 					}
