@@ -549,18 +549,16 @@ func (h Handler) Inbox(c echo.Context) error {
 
 			local := strings.TrimPrefix(obj, "https://"+h.config.Concurrent.FQDN+"/ap/acct/")
 
-			log.Println("Undo follow", local, remote)
-
 			// check follow already deleted
 			_, err = h.repo.GetFollowerByTuple(ctx, local, remote)
-			if err == nil {
-				log.Println("follow already undoed", object.Object)
+			if err != nil {
+				log.Println("follow already undoed", local, remote)
 				return c.String(http.StatusOK, "follow already undoed")
 			}
 			_, err = h.repo.RemoveFollower(ctx, local, remote)
 			if err != nil {
+				log.Println("remove follower failed error", err)
 				span.RecordError(err)
-				log.Println("Internal server error (remove follower error)", err)
 			}
 			return c.String(http.StatusOK, "OK")
 
