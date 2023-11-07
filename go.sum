@@ -136,8 +136,8 @@ github.com/stretchr/testify v1.2.2/go.mod h1:a8OnRcib4nhh0OaRAV+Yts87kKdq0PP7pXf
 github.com/stretchr/testify v1.3.0/go.mod h1:M5WIy9Dh21IEIfnGCwXGc5bZfKNJtfHm1UVUgZn+9EI=
 github.com/stretchr/testify v1.7.0/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
 github.com/stretchr/testify v1.8.4 h1:CcVxjf3Q8PM0mHUKJCdn+eZZtm5yQwehR5yeSVQQcUk=
-github.com/totegamma/concurrent v0.3.7 h1:95EGcrlnoAoyqb+MNVSHRDzOJeI7Ko4zMny6Q7pa7ws=
-github.com/totegamma/concurrent v0.3.7/go.mod h1:x7xtsFwhqAUGab/hR+lJtsTF6tTJNEiI7bNNwcBS/1A=
+github.com/totegamma/concurrent v0.4.2 h1:LnJTOLrCr30wDFfjjyYie2ly/NK7m5/v2752j7hla9I=
+github.com/totegamma/concurrent v0.4.2/go.mod h1:x7xtsFwhqAUGab/hR+lJtsTF6tTJNEiI7bNNwcBS/1A=
 github.com/valyala/bytebufferpool v1.0.0 h1:GqA5TC/0021Y/b9FG4Oi9Mr3q7XYx6KllzawFIhcdPw=
 github.com/valyala/bytebufferpool v1.0.0/go.mod h1:6bBcMArwyJ5K/AmCkWv1jt77kVWyCJ6HpOuEn7z0Csc=
 github.com/valyala/fasttemplate v1.2.1/go.mod h1:KHLXt3tVN2HBp8eijSv/kGJopbvo7S+qRAEEKiv+SiQ=

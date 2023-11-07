@@ -156,7 +156,7 @@ func main() {
 	ap.POST("/inbox", activitypubHandler.Inbox)
 
 	// should be restricted
-	apR := ap.Group("", auth.JWT)
+	apR := ap.Group("", auth.ParseJWT)
 	apR.POST("/api/entity", activitypubHandler.CreateEntity, authService.Restrict(auth.ISLOCAL))   // ISLOCAL
 	apR.PUT("/api/person", activitypubHandler.UpdatePerson, authService.Restrict(auth.ISLOCAL))    // ISLOCAL
 	apR.POST("/api/follow/:id", activitypubHandler.Follow, authService.Restrict(auth.ISLOCAL))     // ISLOCAL

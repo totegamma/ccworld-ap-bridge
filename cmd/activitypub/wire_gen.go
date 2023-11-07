@@ -34,13 +34,13 @@ func SetupAuthService(db *gorm.DB, config util.Config) auth.Service {
 func SetupActivitypubHandler(db *gorm.DB, rdb *redis.Client, mc *memcache.Client, config util.Config, apConfig activitypub.APConfig) *activitypub.Handler {
 	repository := activitypub.NewRepository(db)
 	messageRepository := message.NewRepository(db)
-	streamRepository := stream.NewRepository(db, mc, config)
+	streamRepository := stream.NewRepository(db, rdb, mc, config)
 	entityRepository := entity.NewRepository(db)
 	service := entity.NewService(entityRepository, config)
-	streamService := stream.NewService(rdb, streamRepository, service, config)
+	streamService := stream.NewService(streamRepository, service, config)
 	messageService := message.NewService(rdb, messageRepository, streamService)
 	associationRepository := association.NewRepository(db)
-	associationService := association.NewService(rdb, associationRepository, streamService, messageService)
+	associationService := association.NewService(associationRepository, streamService, messageService)
 	handler := activitypub.NewHandler(repository, rdb, messageService, service, associationService, config, apConfig)
 	return handler
 }

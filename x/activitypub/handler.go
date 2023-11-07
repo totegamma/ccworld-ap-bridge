@@ -343,6 +343,7 @@ func (h Handler) Inbox(c echo.Context) error {
 				},
 				SignedAt: time.Now(),
 				Target:   targetID,
+				Variant:  object.Tag[0].Icon.URL,
 			}
 		}
 
