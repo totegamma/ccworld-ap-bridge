@@ -1,11 +1,12 @@
 module github.com/totegamma/ccworld-ap-bridge
 
-go 1.20
+go 1.21.0
+
+toolchain go1.21.4
 
 require (
 	github.com/bradfitz/gomemcache v0.0.0-20230905024940-24af94b03874
 	github.com/ethereum/go-ethereum v1.12.2
-	github.com/go-fed/httpsig v1.1.0
 	github.com/go-yaml/yaml v2.1.0+incompatible
 	github.com/google/wire v0.5.0
 	github.com/labstack/echo-contrib v0.15.0
@@ -13,6 +14,7 @@ require (
 	github.com/redis/go-redis/extra/redisotel/v9 v9.0.5
 	github.com/redis/go-redis/v9 v9.1.0
 	github.com/totegamma/concurrent v0.4.2
+	github.com/totegamma/httpsig v1.1.1
 	go.opentelemetry.io/contrib/instrumentation/github.com/labstack/echo/otelecho v0.43.0
 	go.opentelemetry.io/otel v1.17.0
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp v1.17.0

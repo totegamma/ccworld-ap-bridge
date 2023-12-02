@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-fed/httpsig"
+	"github.com/totegamma/httpsig"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/propagation"
 )
@@ -21,7 +21,7 @@ var (
 )
 
 // FetchNote fetches a note from remote ap server.
-func (h Handler)FetchNote(ctx context.Context, noteID string, execEntity ApEntity) (Note, error) {
+func (h Handler) FetchNote(ctx context.Context, noteID string, execEntity ApEntity) (Note, error) {
 	_, span := tracer.Start(ctx, "FetchNote")
 	defer span.End()
 
@@ -34,6 +34,7 @@ func (h Handler)FetchNote(ctx context.Context, noteID string, execEntity ApEntit
 	req.Header.Set("Accept", "application/activity+json")
 	req.Header.Set("Date", time.Now().UTC().Format(http.TimeFormat))
 	req.Header.Set("User-Agent", UserAgent)
+	req.Header.Set("Host", req.URL.Host)
 	client := new(http.Client)
 
 	priv, err := h.repo.LoadKey(ctx, execEntity)
@@ -44,7 +45,7 @@ func (h Handler)FetchNote(ctx context.Context, noteID string, execEntity ApEntit
 
 	prefs := []httpsig.Algorithm{httpsig.RSA_SHA256}
 	digestAlgorithm := httpsig.DigestSha256
-	headersToSign := []string{httpsig.RequestTarget, "date"}
+	headersToSign := []string{httpsig.RequestTarget, "date", "host"}
 	signer, _, err := httpsig.NewSigner(prefs, digestAlgorithm, headersToSign, httpsig.Signature, 0)
 	if err != nil {
 		log.Println(err)
@@ -72,7 +73,7 @@ func (h Handler)FetchNote(ctx context.Context, noteID string, execEntity ApEntit
 }
 
 // FetchPerson fetches a person from remote ap server.
-func (h Handler)FetchPerson(ctx context.Context, actor string, execEntity ApEntity) (Person, error) {
+func (h Handler) FetchPerson(ctx context.Context, actor string, execEntity ApEntity) (Person, error) {
 	_, span := tracer.Start(ctx, "FetchPerson")
 	defer span.End()
 
@@ -85,6 +86,7 @@ func (h Handler)FetchPerson(ctx context.Context, actor string, execEntity ApEnti
 	req.Header.Set("Accept", "application/activity+json")
 	req.Header.Set("Date", time.Now().UTC().Format(http.TimeFormat))
 	req.Header.Set("User-Agent", UserAgent)
+	req.Header.Set("Host", req.URL.Host)
 	client := new(http.Client)
 
 	priv, err := h.repo.LoadKey(ctx, execEntity)
@@ -95,14 +97,13 @@ func (h Handler)FetchPerson(ctx context.Context, actor string, execEntity ApEnti
 
 	prefs := []httpsig.Algorithm{httpsig.RSA_SHA256}
 	digestAlgorithm := httpsig.DigestSha256
-	headersToSign := []string{httpsig.RequestTarget, "date"}
+	headersToSign := []string{httpsig.RequestTarget, "date", "host"}
 	signer, _, err := httpsig.NewSigner(prefs, digestAlgorithm, headersToSign, httpsig.Signature, 0)
 	if err != nil {
 		log.Println(err)
 		return person, err
 	}
 	err = signer.SignRequest(priv, "https://"+h.config.Concurrent.FQDN+"/ap/acct/"+execEntity.ID+"#main-key", req, nil)
-
 
 	resp, err := client.Do(req)
 	if err != nil {
@@ -136,7 +137,7 @@ func ResolveActor(ctx context.Context, id string) (string, error) {
 
 	domain := split[1]
 
-	targetlink := "https://"+domain+"/.well-known/webfinger?resource=acct:"+id
+	targetlink := "https://" + domain + "/.well-known/webfinger?resource=acct:" + id
 
 	var webfinger WebFinger
 	req, err := http.NewRequest("GET", targetlink, nil)
@@ -175,8 +176,6 @@ func ResolveActor(ctx context.Context, id string) (string, error) {
 	return aplink.Href, nil
 }
 
-
-
 // PostToInbox posts a message to remote ap server.
 func (h Handler) PostToInbox(ctx context.Context, inbox string, object interface{}, entity ApEntity) error {
 
@@ -193,6 +192,7 @@ func (h Handler) PostToInbox(ctx context.Context, inbox string, object interface
 	req.Header.Set("Content-Type", "application/activity+json")
 	req.Header.Set("User-Agent", UserAgent)
 	req.Header.Set("Date", time.Now().UTC().Format(http.TimeFormat))
+	req.Header.Set("Host", req.URL.Host)
 	client := new(http.Client)
 
 	priv, err := h.repo.LoadKey(ctx, entity)
@@ -203,7 +203,7 @@ func (h Handler) PostToInbox(ctx context.Context, inbox string, object interface
 
 	prefs := []httpsig.Algorithm{httpsig.RSA_SHA256}
 	digestAlgorithm := httpsig.DigestSha256
-	headersToSign := []string{httpsig.RequestTarget, "date", "digest"}
+	headersToSign := []string{httpsig.RequestTarget, "date", "digest", "host"}
 	signer, _, err := httpsig.NewSigner(prefs, digestAlgorithm, headersToSign, httpsig.Signature, 0)
 	if err != nil {
 		log.Println(err)
