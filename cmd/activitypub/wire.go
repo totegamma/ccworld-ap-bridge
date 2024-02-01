@@ -7,6 +7,7 @@ import (
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 
+	"github.com/bradfitz/gomemcache/memcache"
 	"github.com/totegamma/ccworld-ap-bridge/x/activitypub"
 	"github.com/totegamma/concurrent/x/association"
 	"github.com/totegamma/concurrent/x/auth"
@@ -15,7 +16,6 @@ import (
 	"github.com/totegamma/concurrent/x/message"
 	"github.com/totegamma/concurrent/x/stream"
 	"github.com/totegamma/concurrent/x/util"
-	"github.com/bradfitz/gomemcache/memcache"
 )
 
 func SetupAuthService(db *gorm.DB, config util.Config) auth.Service {

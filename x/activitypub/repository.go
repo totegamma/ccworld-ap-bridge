@@ -1,14 +1,13 @@
 package activitypub
 
 import (
-	"fmt"
-	"crypto/x509"
-	"encoding/pem"
 	"context"
 	"crypto/rsa"
+	"crypto/x509"
+	"encoding/pem"
+	"fmt"
 	"gorm.io/gorm"
 )
-
 
 // Repository is a repository for ActivityPub.
 type Repository struct {
@@ -263,4 +262,3 @@ func (r *Repository) LoadKey(ctx context.Context, entity ApEntity) (*rsa.Private
 
 	return priv, nil
 }
-

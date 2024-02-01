@@ -101,7 +101,6 @@ func main() {
 		panic("failed to setup tracing plugin")
 	}
 
-
 	mc := memcache.New(config.Server.MemcachedAddr)
 	log.Println("config.Server.MemcachedAddr", config.Server.MemcachedAddr)
 	if err != nil {

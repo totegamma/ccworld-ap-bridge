@@ -93,14 +93,14 @@ func (h *Handler) StartMessageWorker() {
 							}
 
 							if note.Type == "Announce" {
-								announce := Object {
+								announce := Object{
 									Context: []string{"https://www.w3.org/ns/activitystreams"},
 									Type:    "Announce",
 									ID:      "https://" + h.config.Concurrent.FQDN + "/ap/note/" + messageID + "/activity",
 									Actor:   "https://" + h.config.Concurrent.FQDN + "/ap/acct/" + job.PublisherUserID,
 									Content: "",
 									Object:  note.Object,
-                                    To:      []string{"https://www.w3.org/ns/activitystreams#Public"},
+									To:      []string{"https://www.w3.org/ns/activitystreams#Public"},
 								}
 
 								err = h.PostToInbox(ctx, job.SubscriberInbox, announce, entity)
@@ -117,7 +117,7 @@ func (h *Handler) StartMessageWorker() {
 									ID:      "https://" + h.config.Concurrent.FQDN + "/ap/note/" + messageID + "/activity",
 									Actor:   "https://" + h.config.Concurrent.FQDN + "/ap/acct/" + job.PublisherUserID,
 									To:      []string{"https://www.w3.org/ns/activitystreams#Public"},
-									Object: note,
+									Object:  note,
 								}
 
 								err = h.PostToInbox(ctx, job.SubscriberInbox, create, entity)

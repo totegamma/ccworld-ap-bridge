@@ -124,12 +124,12 @@ func (h Handler) User(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, Person{
-		Context:           "https://www.w3.org/ns/activitystreams",
-		Type:              "Person",
-		ID:                "https://" + h.config.Concurrent.FQDN + "/ap/acct/" + id,
-		Inbox:             "https://" + h.config.Concurrent.FQDN + "/ap/acct/" + id + "/inbox",
-		Outbox:            "https://" + h.config.Concurrent.FQDN + "/ap/acct/" + id + "/outbox",
-		SharedInbox:       "https://" + h.config.Concurrent.FQDN + "/ap/inbox",
+		Context:     "https://www.w3.org/ns/activitystreams",
+		Type:        "Person",
+		ID:          "https://" + h.config.Concurrent.FQDN + "/ap/acct/" + id,
+		Inbox:       "https://" + h.config.Concurrent.FQDN + "/ap/acct/" + id + "/inbox",
+		Outbox:      "https://" + h.config.Concurrent.FQDN + "/ap/acct/" + id + "/outbox",
+		SharedInbox: "https://" + h.config.Concurrent.FQDN + "/ap/inbox",
 		Endpoints: PersonEndpoints{
 			SharedInbox: "https://" + h.config.Concurrent.FQDN + "/ap/inbox",
 		},
@@ -276,8 +276,8 @@ func (h Handler) Inbox(c echo.Context) error {
 		}
 
 		err = h.repo.CreateApObjectReference(ctx, ApObjectReference{
-			ApObjectID:   object.ID,
-			CcObjectID:   "",
+			ApObjectID: object.ID,
+			CcObjectID: "",
 		})
 
 		if err != nil {
@@ -368,8 +368,8 @@ func (h Handler) Inbox(c echo.Context) error {
 
 		// save reference
 		err = h.repo.UpdateApObjectReference(ctx, ApObjectReference{
-			ApObjectID:   object.ID,
-			CcObjectID:   created.ID,
+			ApObjectID: object.ID,
+			CcObjectID: created.ID,
 		})
 
 		return c.String(http.StatusOK, "like accepted")
@@ -402,8 +402,8 @@ func (h Handler) Inbox(c echo.Context) error {
 
 			// preserve reference
 			err = h.repo.CreateApObjectReference(ctx, ApObjectReference{
-				ApObjectID:   createID,
-				CcObjectID:   "",
+				ApObjectID: createID,
+				CcObjectID: "",
 			})
 
 			if err != nil {
@@ -462,8 +462,8 @@ func (h Handler) Inbox(c echo.Context) error {
 
 			// save reference
 			err = h.repo.UpdateApObjectReference(ctx, ApObjectReference{
-				ApObjectID:   createID,
-				CcObjectID:   created.ID,
+				ApObjectID: createID,
+				CcObjectID: created.ID,
 			})
 
 			return c.String(http.StatusOK, "note accepted")
@@ -1049,7 +1049,6 @@ func (h Handler) NodeInfo(c echo.Context) error {
 		},
 	})
 }
-
 
 // Import handles import requests.
 func (h Handler) ImportNote(c echo.Context) error {

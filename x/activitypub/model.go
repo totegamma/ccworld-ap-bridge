@@ -83,22 +83,22 @@ type PersonEndpoints struct {
 
 // Person is a struct for an ActivityPub actor.
 type Person struct {
-	Context           interface{} `json:"@context"`
-	Type              string      `json:"type"`
-	ID                string      `json:"id"`
-	Inbox             string      `json:"inbox"`
-	Outbox            string      `json:"outbox"`
-	SharedInbox       string      `json:"sharedInbox"`
+	Context           interface{}     `json:"@context"`
+	Type              string          `json:"type"`
+	ID                string          `json:"id"`
+	Inbox             string          `json:"inbox"`
+	Outbox            string          `json:"outbox"`
+	SharedInbox       string          `json:"sharedInbox"`
 	Endpoints         PersonEndpoints `json:"endpoints"`
-	Followers         string      `json:"followers"`
-	Following         string      `json:"following"`
-	Liked             string      `json:"liked"`
-	PreferredUsername string      `json:"preferredUsername"`
-	Name              string      `json:"name"`
-	Summary           string      `json:"summary"`
-	URL               string      `json:"url"`
-	Icon              Icon        `json:"icon"`
-	PublicKey         Key         `json:"publicKey"`
+	Followers         string          `json:"followers"`
+	Following         string          `json:"following"`
+	Liked             string          `json:"liked"`
+	PreferredUsername string          `json:"preferredUsername"`
+	Name              string          `json:"name"`
+	Summary           string          `json:"summary"`
+	URL               string          `json:"url"`
+	Icon              Icon            `json:"icon"`
+	PublicKey         Key             `json:"publicKey"`
 }
 
 // Key is a struct for the publicKey field of an actor.
@@ -197,7 +197,7 @@ type NodeInfoUsers struct {
 }
 
 type NodeInfoUsage struct {
-	LocalPosts int64 `json:"localPosts"`
+	LocalPosts int64         `json:"localPosts"`
 	Users      NodeInfoUsers `json:"users"`
 }
 

@@ -1,15 +1,15 @@
 package activitypub
 
 import (
-	"time"
-	"strings"
-	"errors"
-	"regexp"
 	"context"
 	"encoding/json"
+	"errors"
 	"github.com/totegamma/concurrent/x/core"
-	"github.com/totegamma/concurrent/x/util"
 	"github.com/totegamma/concurrent/x/message"
+	"github.com/totegamma/concurrent/x/util"
+	"regexp"
+	"strings"
+	"time"
 )
 
 func (h Handler) MessageToNote(ctx context.Context, messageID string) (Note, error) {
@@ -27,7 +27,6 @@ func (h Handler) MessageToNote(ctx context.Context, messageID string) (Note, err
 		span.RecordError(err)
 		return Note{}, errors.New("entity not found")
 	}
-
 
 	var signedObject message.SignedObject
 	err = json.Unmarshal([]byte(msg.Payload), &signedObject)
@@ -170,10 +169,10 @@ func (h Handler) MessageToNote(ctx context.Context, messageID string) (Note, err
 
 		if text == "" {
 			return Note{
-				Context:      "https://www.w3.org/ns/activitystreams",
-				Type:         "Announce",
-				ID:           "https://" + fqdn + "/ap/note/" + msg.ID,
-				Object:       ref,
+				Context: "https://www.w3.org/ns/activitystreams",
+				Type:    "Announce",
+				ID:      "https://" + fqdn + "/ap/note/" + msg.ID,
+				Object:  ref,
 			}, nil
 		}
 
@@ -191,7 +190,7 @@ func (h Handler) MessageToNote(ctx context.Context, messageID string) (Note, err
 	}
 }
 
-func (h Handler) NoteToMessage (ctx context.Context, object Note, person Person, destStreams []string) (core.Message, error) {
+func (h Handler) NoteToMessage(ctx context.Context, object Note, person Person, destStreams []string) (core.Message, error) {
 
 	content := object.Content
 
@@ -269,4 +268,3 @@ func (h Handler) NoteToMessage (ctx context.Context, object Note, person Person,
 
 	return created, nil
 }
-
