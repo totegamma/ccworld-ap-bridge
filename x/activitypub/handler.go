@@ -83,6 +83,7 @@ func (h Handler) WebFinger(c echo.Context) error {
 		return c.String(http.StatusNotFound, "entity not found")
 	}
 
+	c.Response().Header().Set("Content-Type", "application/jrd+json")
 	return c.JSON(http.StatusOK, WebFinger{
 		Subject: resource,
 		Links: []WebFingerLink{
@@ -126,6 +127,7 @@ func (h Handler) User(c echo.Context) error {
 		return c.Redirect(http.StatusFound, "https://concurrent.world/entity/"+entity.CCID)
 	}
 
+	c.Response().Header().Set("Content-Type", "application/activity+json")
 	return c.JSON(http.StatusOK, Person{
 		Context:     "https://www.w3.org/ns/activitystreams",
 		Type:        "Person",
@@ -185,6 +187,7 @@ func (h Handler) Note(c echo.Context) error {
 		return c.String(http.StatusInternalServerError, "error converting message to note")
 	}
 
+	c.Response().Header().Set("Content-Type", "application/activity+json")
 	return c.JSON(http.StatusOK, note)
 }
 
@@ -268,6 +271,7 @@ func (h Handler) Inbox(c echo.Context) error {
 			return c.String(http.StatusInternalServerError, "Internal server error (save follow error)")
 		}
 
+		c.Response().Header().Set("Content-Type", "application/activity+json")
 		return c.String(http.StatusOK, "follow accepted")
 
 	case "Like":
@@ -664,6 +668,7 @@ func (h Handler) GetPerson(c echo.Context) error {
 		return c.String(http.StatusNotFound, "entity not found")
 	}
 
+	c.Response().Header().Set("Content-Type", "application/activity+json")
 	return c.JSON(http.StatusOK, echo.Map{"status": "ok", "content": person})
 }
 
