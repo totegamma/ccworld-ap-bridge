@@ -190,6 +190,8 @@ type Note struct {
 	Tag          []Tag        `json:"tag,omitempty"`
 	Attachment   []Attachment `json:"attachment,omitempty"`
 	Object       interface{}  `json:"object,omitempty"`
+	Sensitive    bool         `json:"sensitive,omitempty"`
+	Summary      string       `json:"summary,omitempty"`
 }
 
 type NodeInfoUsers struct {

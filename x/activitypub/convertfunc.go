@@ -218,6 +218,14 @@ func (h Handler) NoteToMessage(ctx context.Context, object Note, person Person, 
 		return core.Message{}, errors.New("note too long")
 	}
 
+	if object.Sensitive {
+		summary := "CW"
+		if object.Summary != "" {
+			summary = object.Summary
+		}
+		content = "<details>\n<summary>" + summary + "</summary>\n" + content + "\n</details>"
+	}
+
 	username := person.Name
 	if len(username) == 0 {
 		username = person.PreferredUsername
