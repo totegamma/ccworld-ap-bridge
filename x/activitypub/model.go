@@ -78,89 +78,89 @@ type WebFingerLink struct {
 
 // endpoints is a struct for the endpoints field of a WebFinger response.
 type PersonEndpoints struct {
-	SharedInbox string `json:"sharedInbox"`
+	SharedInbox string `json:"sharedInbox,omitempty"`
 }
 
 // Person is a struct for an ActivityPub actor.
 type Person struct {
-	Context           interface{}     `json:"@context"`
-	Type              string          `json:"type"`
-	ID                string          `json:"id"`
-	Inbox             string          `json:"inbox"`
-	Outbox            string          `json:"outbox"`
-	SharedInbox       string          `json:"sharedInbox"`
-	Endpoints         PersonEndpoints `json:"endpoints"`
-	Followers         string          `json:"followers"`
-	Following         string          `json:"following"`
-	Liked             string          `json:"liked"`
-	PreferredUsername string          `json:"preferredUsername"`
-	Name              string          `json:"name"`
-	Summary           string          `json:"summary"`
-	URL               string          `json:"url"`
-	Icon              Icon            `json:"icon"`
-	PublicKey         Key             `json:"publicKey"`
+	Context           interface{}     `json:"@context,omitempty"`
+	Type              string          `json:"type,omitempty"`
+	ID                string          `json:"id,omitempty"`
+	Inbox             string          `json:"inbox,omitempty"`
+	Outbox            string          `json:"outbox,omitempty"`
+	SharedInbox       string          `json:"sharedInbox,omitempty"`
+	Endpoints         PersonEndpoints `json:"endpoints,omitempty"`
+	Followers         string          `json:"followers,omitempty"`
+	Following         string          `json:"following,omitempty"`
+	Liked             string          `json:"liked,omitempty"`
+	PreferredUsername string          `json:"preferredUsername,omitempty"`
+	Name              string          `json:"name,omitempty"`
+	Summary           string          `json:"summary,omitempty"`
+	URL               string          `json:"url,omitempty"`
+	Icon              Icon            `json:"icon,omitempty"`
+	PublicKey         Key             `json:"publicKey,omitempty"`
 }
 
 // Key is a struct for the publicKey field of an actor.
 type Key struct {
-	ID           string `json:"id"`
-	Type         string `json:"type"`
-	Owner        string `json:"owner"`
-	PublicKeyPem string `json:"publicKeyPem"`
+	ID           string `json:"id,omitempty"`
+	Type         string `json:"type,omitempty"`
+	Owner        string `json:"owner,omitempty"`
+	PublicKeyPem string `json:"publicKeyPem,omitempty"`
 }
 
 // Icon is a struct for the icon field of an actor.
 type Icon struct {
-	Type      string `json:"type"`
-	MediaType string `json:"mediaType"`
-	URL       string `json:"url"`
+	Type      string `json:"type,omitempty"`
+	MediaType string `json:"mediaType,omitempty"`
+	URL       string `json:"url,omitempty"`
 }
 
 // Create is a struct for an ActivityPub create activity.
 type Create struct {
-	Context interface{} `json:"@context"`
-	ID      string      `json:"id"`
-	Type    string      `json:"type"`
-	Actor   string      `json:"actor"`
-	To      []string    `json:"to"`
-	Object  interface{} `json:"object"`
+	Context interface{} `json:"@context,omitempty"`
+	ID      string      `json:"id,omitempty"`
+	Type    string      `json:"type,omitempty"`
+	Actor   string      `json:"actor,omitempty"`
+	To      []string    `json:"to,omitempty"`
+	Object  interface{} `json:"object,omitempty"`
 }
 
 // Object is a struct for an ActivityPub object.
 type Object struct {
-	Context    interface{}  `json:"@context"`
-	Type       string       `json:"type"`
-	ID         string       `json:"id"`
-	Content    string       `json:"content"`
-	Actor      string       `json:"actor"`
-	Object     interface{}  `json:"object"`
-	To         []string     `json:"to"`
-	Attachment []Attachment `json:"attachment"`
-	Tag        []Tag        `json:"tag"`
+	Context    interface{}  `json:"@context,omitempty"`
+	Type       string       `json:"type,omitempty"`
+	ID         string       `json:"id,omitempty"`
+	Content    string       `json:"content,omitempty"`
+	Actor      string       `json:"actor,omitempty"`
+	Object     interface{}  `json:"object,omitempty"`
+	To         []string     `json:"to,omitempty"`
+	Attachment []Attachment `json:"attachment,omitempty"`
+	Tag        []Tag        `json:"tag,omitempty"`
 }
 
 // Attachment is a struct for an ActivityPub attachment.
 type Attachment struct {
-	Type      string `json:"type"`
-	MediaType string `json:"mediaType"`
-	URL       string `json:"url"`
+	Type      string `json:"type,omitempty"`
+	MediaType string `json:"mediaType,omitempty"`
+	URL       string `json:"url,omitempty"`
 }
 
 // Tag is a struct for an ActivityPub tag.
 type Tag struct {
-	Type string `json:"type"`
-	ID   string `json:"id"`
-	Name string `json:"name"`
-	Icon Icon   `json:"icon"`
+	Type string `json:"type,omitempty"`
+	ID   string `json:"id,omitempty"`
+	Name string `json:"name,omitempty"`
+	Icon Icon   `json:"icon,omitempty"`
 }
 
 // Accept is a struct for an ActivityPub accept activity.
 type Accept struct {
-	Context interface{} `json:"@context"`
-	Type    string      `json:"type"`
-	ID      string      `json:"id"`
-	Actor   string      `json:"actor"`
-	Object  Object      `json:"object"`
+	Context interface{} `json:"@context,omitempty"`
+	Type    string      `json:"type,omitempty"`
+	ID      string      `json:"id,omitempty"`
+	Actor   string      `json:"actor,omitempty"`
+	Object  Object      `json:"object,omitempty"`
 }
 
 // CreateEntityRequest is a struct for a request to create an entity.
@@ -178,57 +178,57 @@ type ApAccountStats struct {
 
 // Note is a struct for a note.
 type Note struct {
-	Context      interface{}  `json:"@context"`
-	Type         string       `json:"type"`
-	ID           string       `json:"id"`
-	AttributedTo string       `json:"attributedTo"`
-	InReplyTo    string       `json:"inReplyTo"`
-	QuoteURL     string       `json:"quoteUrl"`
-	Content      string       `json:"content"`
-	Published    string       `json:"published"`
-	To           []string     `json:"to"`
-	Tag          []Tag        `json:"tag"`
-	Attachment   []Attachment `json:"attachment"`
-	Object       interface{}  `json:"object"`
+	Context      interface{}  `json:"@context,omitempty"`
+	Type         string       `json:"type,omitempty"`
+	ID           string       `json:"id,omitempty"`
+	AttributedTo string       `json:"attributedTo,omitempty"`
+	InReplyTo    string       `json:"inReplyTo,omitempty"`
+	QuoteURL     string       `json:"quoteUrl,omitempty"`
+	Content      string       `json:"content,omitempty"`
+	Published    string       `json:"published,omitempty"`
+	To           []string     `json:"to,omitempty"`
+	Tag          []Tag        `json:"tag,omitempty"`
+	Attachment   []Attachment `json:"attachment,omitempty"`
+	Object       interface{}  `json:"object,omitempty"`
 }
 
 type NodeInfoUsers struct {
-	TotalUsers int64 `json:"total"`
+	TotalUsers int64 `json:"total,omitempty"`
 }
 
 type NodeInfoUsage struct {
-	LocalPosts int64         `json:"localPosts"`
-	Users      NodeInfoUsers `json:"users"`
+	LocalPosts int64         `json:"localPosts,omitempty"`
+	Users      NodeInfoUsers `json:"users,omitempty"`
 }
 
 // NodeInfo is a struct for a NodeInfo response.
 type NodeInfo struct {
-	Version           string           `json:"version"`
-	Software          NodeInfoSoftware `json:"software"`
-	Protocols         []string         `json:"protocols"`
-	OpenRegistrations bool             `json:"openRegistrations"`
-	Metadata          NodeInfoMetadata `json:"metadata"`
-	Usage             NodeInfoUsage    `json:"usage"`
+	Version           string           `json:"version,omitempty"`
+	Software          NodeInfoSoftware `json:"software,omitempty"`
+	Protocols         []string         `json:"protocols,omitempty"`
+	OpenRegistrations bool             `json:"openRegistrations,omitempty"`
+	Metadata          NodeInfoMetadata `json:"metadata,omitempty"`
+	Usage             NodeInfoUsage    `json:"usage,omitempty"`
 }
 
 // NodeInfoSoftware is a struct for the software field of a NodeInfo response.
 type NodeInfoSoftware struct {
-	Name    string `json:"name"`
-	Version string `json:"version"`
+	Name    string `json:"name,omitempty"`
+	Version string `json:"version,omitempty"`
 }
 
 // NodeInfoMetadata is a struct for the metadata field of a NodeInfo response.
 type NodeInfoMetadata struct {
-	NodeName        string                     `json:"nodeName"`
-	NodeDescription string                     `json:"nodeDescription"`
-	Maintainer      NodeInfoMetadataMaintainer `json:"maintainer"`
-	ThemeColor      string                     `json:"themeColor"`
+	NodeName        string                     `json:"nodeName,omitempty"`
+	NodeDescription string                     `json:"nodeDescription,omitempty"`
+	Maintainer      NodeInfoMetadataMaintainer `json:"maintainer,omitempty"`
+	ThemeColor      string                     `json:"themeColor,omitempty"`
 }
 
 // NodeInfoMetadataMaintainer is a struct for the maintainer field of a NodeInfo response.
 type NodeInfoMetadataMaintainer struct {
-	Name  string `json:"name"`
-	Email string `json:"email"`
+	Name  string `json:"name,omitempty"`
+	Email string `json:"email,omitempty"`
 }
 
 type WorldEmoji struct {
