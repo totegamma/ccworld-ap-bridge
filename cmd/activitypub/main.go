@@ -18,6 +18,7 @@ import (
 
 	"github.com/totegamma/ccworld-ap-bridge/x/activitypub"
 	"github.com/totegamma/concurrent/x/auth"
+	"github.com/totegamma/concurrent/x/socket"
 	"github.com/totegamma/concurrent/x/util"
 
 	"github.com/redis/go-redis/extra/redisotel/v9"
@@ -30,6 +31,13 @@ import (
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.7.0"
 	"gorm.io/plugin/opentelemetry/tracing"
+)
+
+var (
+	version      = "unknown"
+	buildMachine = "unknown"
+	buildTime    = "unknown"
+	goVersion    = "unknown"
 )
 
 func main() {
@@ -55,7 +63,7 @@ func main() {
 		e.Logger.Fatal(err)
 	}
 
-	log.Print("Concurrent ", util.GetFullVersion(), " starting...")
+	log.Print("ConcurrentWorld Activitypub Bridge ", version, " starting...")
 	log.Print("Config loaded! I am: ", config.Concurrent.CCID)
 
 	log.Print("ApConfig loaded! Proxy: ", apConf.ProxyCCID)
@@ -64,7 +72,7 @@ func main() {
 	e.HideBanner = true
 
 	if config.Server.EnableTrace {
-		cleanup, err := setupTraceProvider(config.Server.TraceEndpoint, config.Concurrent.FQDN+"/ccapi", util.GetFullVersion())
+		cleanup, err := setupTraceProvider(config.Server.TraceEndpoint, config.Concurrent.FQDN+"/ccapi", version)
 		if err != nil {
 			panic(err)
 		}
@@ -136,8 +144,18 @@ func main() {
 		panic("failed to setup tracing plugin")
 	}
 
-	authService := SetupAuthService(db, config)
-	activitypubHandler := SetupActivitypubHandler(db, rdb, mc, config, apConf)
+	var emptyManager socket.Manager
+
+	authService := SetupAuthService(db, rdb, config)
+	activitypubHandler := SetupActivitypubHandler(
+		db,
+		rdb,
+		mc,
+		config,
+		apConf,
+		emptyManager,
+		version,
+	)
 
 	e.GET("/.well-known/webfinger", activitypubHandler.WebFinger)
 	e.GET("/.well-known/nodeinfo", activitypubHandler.NodeInfoWellKnown)

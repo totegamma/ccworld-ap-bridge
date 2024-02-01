@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/totegamma/concurrent/x/association"
+	"github.com/totegamma/concurrent/x/core"
 	"github.com/totegamma/concurrent/x/message"
-	"github.com/totegamma/concurrent/x/stream"
 )
 
 func (h *Handler) StartMessageWorker() {
@@ -62,7 +62,7 @@ func (h *Handler) StartMessageWorker() {
 
 							log.Printf("[worker %v] message received!\n", job.ID)
 
-							var streamEvent stream.Event
+							var streamEvent core.Event
 							err = json.Unmarshal([]byte(pubsubMsg.Payload), &streamEvent)
 							if err != nil {
 								log.Printf("error: %v", err)
@@ -164,7 +164,7 @@ func (h *Handler) StartAssociationWorker(notificationStream string) {
 
 		log.Printf("received association: %v", pubsubMsg.Payload)
 
-		var streamEvent stream.Event
+		var streamEvent core.Event
 		err = json.Unmarshal([]byte(pubsubMsg.Payload), &streamEvent)
 		if err != nil {
 			log.Printf("error: %v", err)

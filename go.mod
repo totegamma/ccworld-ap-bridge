@@ -13,7 +13,7 @@ require (
 	github.com/labstack/echo/v4 v4.11.1
 	github.com/redis/go-redis/extra/redisotel/v9 v9.0.5
 	github.com/redis/go-redis/v9 v9.1.0
-	github.com/totegamma/concurrent v0.4.2
+	github.com/totegamma/concurrent v0.5.0
 	github.com/totegamma/httpsig v1.1.1
 	go.opentelemetry.io/contrib/instrumentation/github.com/labstack/echo/otelecho v0.43.0
 	go.opentelemetry.io/otel v1.17.0
@@ -38,6 +38,7 @@ require (
 	github.com/golang-jwt/jwt v3.2.2+incompatible // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/google/subcommands v1.0.1 // indirect
+	github.com/gorilla/websocket v1.4.2 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.16.0 // indirect
 	github.com/holiman/uint256 v1.2.3 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect

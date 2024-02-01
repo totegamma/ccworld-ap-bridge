@@ -13,28 +13,29 @@ import (
 	"github.com/totegamma/concurrent/x/auth"
 	"github.com/totegamma/concurrent/x/domain"
 	"github.com/totegamma/concurrent/x/entity"
+	"github.com/totegamma/concurrent/x/jwt"
 	"github.com/totegamma/concurrent/x/message"
+	"github.com/totegamma/concurrent/x/socket"
 	"github.com/totegamma/concurrent/x/stream"
 	"github.com/totegamma/concurrent/x/util"
 )
 
-func SetupAuthService(db *gorm.DB, config util.Config) auth.Service {
-	wire.Build(auth.NewService, entity.NewService, entity.NewRepository, domain.NewService, domain.NewRepository)
+var jwtServiceProvider = wire.NewSet(jwt.NewService, jwt.NewRepository)
+var entityServiceProvider = wire.NewSet(entity.NewService, entity.NewRepository, jwtServiceProvider)
+var streamServiceProvider = wire.NewSet(stream.NewService, stream.NewRepository, entityServiceProvider)
+var messageServiceProvider = wire.NewSet(message.NewService, message.NewRepository, streamServiceProvider)
+var associationServiceProvider = wire.NewSet(association.NewService, association.NewRepository, messageServiceProvider)
+
+func SetupAuthService(db *gorm.DB, rdb *redis.Client, config util.Config) auth.Service {
+	wire.Build(jwtServiceProvider, auth.NewService, auth.NewRepository, entity.NewService, entity.NewRepository, domain.NewService, domain.NewRepository)
 	return nil
 }
 
-func SetupActivitypubHandler(db *gorm.DB, rdb *redis.Client, mc *memcache.Client, config util.Config, apConfig activitypub.APConfig) *activitypub.Handler {
+func SetupActivitypubHandler(db *gorm.DB, rdb *redis.Client, mc *memcache.Client, config util.Config, apConfig activitypub.APConfig, manager socket.Manager, version string) *activitypub.Handler {
 	wire.Build(
 		activitypub.NewHandler,
 		activitypub.NewRepository,
-		message.NewService,
-		message.NewRepository,
-		entity.NewService,
-		entity.NewRepository,
-		association.NewService,
-		association.NewRepository,
-		stream.NewService,
-		stream.NewRepository,
+		associationServiceProvider,
 	)
 	return &activitypub.Handler{}
 }

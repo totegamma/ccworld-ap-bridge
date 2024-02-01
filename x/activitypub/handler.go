@@ -12,6 +12,7 @@ import (
 	"github.com/redis/go-redis/v9"
 	"github.com/totegamma/concurrent/x/association"
 	"github.com/totegamma/concurrent/x/entity"
+	"github.com/totegamma/concurrent/x/jwt"
 	"github.com/totegamma/concurrent/x/message"
 	"github.com/totegamma/concurrent/x/util"
 	"go.opentelemetry.io/otel"
@@ -35,6 +36,7 @@ type Handler struct {
 	association association.Service
 	config      util.Config
 	apconfig    APConfig
+	version     string
 }
 
 // NewHandler returns a new Handler.
@@ -46,8 +48,9 @@ func NewHandler(
 	association association.Service,
 	config util.Config,
 	apconfig APConfig,
+	version string,
 ) *Handler {
-	return &Handler{repo, rdb, message, entity, association, config, apconfig}
+	return &Handler{repo, rdb, message, entity, association, config, apconfig, version}
 }
 
 // :: Activitypub Related Functions ::
@@ -669,8 +672,8 @@ func (h Handler) UpdatePerson(c echo.Context) error {
 	ctx, span := tracer.Start(c.Request().Context(), "UpdatePerson")
 	defer span.End()
 
-	claims := c.Get("jwtclaims").(util.JwtClaims)
-	ccid := claims.Audience
+	claims := c.Get("jwtclaims").(jwt.Claims)
+	ccid := claims.Issuer
 
 	entity, err := h.repo.GetEntityByCCID(ctx, ccid)
 	if err != nil {
@@ -703,8 +706,8 @@ func (h Handler) Follow(c echo.Context) error {
 	ctx, span := tracer.Start(c.Request().Context(), "Follow")
 	defer span.End()
 
-	claims := c.Get("jwtclaims").(util.JwtClaims)
-	ccid := claims.Audience
+	claims := c.Get("jwtclaims").(jwt.Claims)
+	ccid := claims.Issuer
 	entity, err := h.repo.GetEntityByCCID(ctx, ccid)
 	if err != nil {
 		span.RecordError(err)
@@ -775,8 +778,8 @@ func (h Handler) UnFollow(c echo.Context) error {
 	ctx, span := tracer.Start(c.Request().Context(), "Unfollow")
 	defer span.End()
 
-	claims := c.Get("jwtclaims").(util.JwtClaims)
-	ccid := claims.Audience
+	claims := c.Get("jwtclaims").(jwt.Claims)
+	ccid := claims.Issuer
 
 	entity, err := h.repo.GetEntityByCCID(ctx, ccid)
 	if err != nil {
@@ -852,8 +855,8 @@ func (h Handler) CreateEntity(c echo.Context) error {
 	ctx, span := tracer.Start(c.Request().Context(), "CreateEntity")
 	defer span.End()
 
-	claims := c.Get("jwtclaims").(util.JwtClaims)
-	ccid := claims.Audience
+	claims := c.Get("jwtclaims").(jwt.Claims)
+	ccid := claims.Issuer
 
 	var request CreateEntityRequest
 	err := c.Bind(&request)
@@ -967,8 +970,8 @@ func (h Handler) GetStats(c echo.Context) error {
 	ctx, span := tracer.Start(c.Request().Context(), "GetStats")
 	defer span.End()
 
-	claims := c.Get("jwtclaims").(util.JwtClaims)
-	ccid := claims.Audience
+	claims := c.Get("jwtclaims").(jwt.Claims)
+	ccid := claims.Issuer
 
 	entity, err := h.repo.GetEntityByCCID(ctx, ccid)
 	if err != nil {
@@ -1025,7 +1028,7 @@ func (h Handler) NodeInfo(c echo.Context) error {
 		Version: "2.0",
 		Software: NodeInfoSoftware{
 			Name:    "Concurrent",
-			Version: util.GetGitShortHash(),
+			Version: h.version,
 		},
 		Protocols: []string{
 			"concurrentsub",
@@ -1055,8 +1058,8 @@ func (h Handler) ImportNote(c echo.Context) error {
 	ctx, span := tracer.Start(c.Request().Context(), "ImportNote")
 	defer span.End()
 
-	claims := c.Get("jwtclaims").(util.JwtClaims)
-	ccid := claims.Audience
+	claims := c.Get("jwtclaims").(jwt.Claims)
+	ccid := claims.Issuer
 	entity, err := h.repo.GetEntityByCCID(ctx, ccid)
 	if err != nil {
 		span.RecordError(err)

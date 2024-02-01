@@ -8,13 +8,16 @@ package main
 
 import (
 	"github.com/bradfitz/gomemcache/memcache"
+	"github.com/google/wire"
 	"github.com/redis/go-redis/v9"
 	"github.com/totegamma/ccworld-ap-bridge/x/activitypub"
 	"github.com/totegamma/concurrent/x/association"
 	"github.com/totegamma/concurrent/x/auth"
 	"github.com/totegamma/concurrent/x/domain"
 	"github.com/totegamma/concurrent/x/entity"
+	"github.com/totegamma/concurrent/x/jwt"
 	"github.com/totegamma/concurrent/x/message"
+	"github.com/totegamma/concurrent/x/socket"
 	"github.com/totegamma/concurrent/x/stream"
 	"github.com/totegamma/concurrent/x/util"
 	"gorm.io/gorm"
@@ -22,25 +25,42 @@ import (
 
 // Injectors from wire.go:
 
-func SetupAuthService(db *gorm.DB, config util.Config) auth.Service {
-	repository := entity.NewRepository(db)
-	service := entity.NewService(repository, config)
+func SetupAuthService(db *gorm.DB, rdb *redis.Client, config util.Config) auth.Service {
+	repository := auth.NewRepository()
+	entityRepository := entity.NewRepository(db)
+	jwtRepository := jwt.NewRepository(rdb)
+	service := jwt.NewService(jwtRepository)
+	entityService := entity.NewService(entityRepository, config, service)
 	domainRepository := domain.NewRepository(db)
 	domainService := domain.NewService(domainRepository)
-	authService := auth.NewService(config, service, domainService)
+	authService := auth.NewService(repository, config, entityService, domainService)
 	return authService
 }
 
-func SetupActivitypubHandler(db *gorm.DB, rdb *redis.Client, mc *memcache.Client, config util.Config, apConfig activitypub.APConfig) *activitypub.Handler {
+func SetupActivitypubHandler(db *gorm.DB, rdb *redis.Client, mc *memcache.Client, config util.Config, apConfig activitypub.APConfig, manager socket.Manager, version2 string) *activitypub.Handler {
 	repository := activitypub.NewRepository(db)
 	messageRepository := message.NewRepository(db)
-	streamRepository := stream.NewRepository(db, rdb, mc, config)
+	streamRepository := stream.NewRepository(db, rdb, mc, manager, config)
 	entityRepository := entity.NewRepository(db)
-	service := entity.NewService(entityRepository, config)
-	streamService := stream.NewService(streamRepository, service, config)
+	jwtRepository := jwt.NewRepository(rdb)
+	service := jwt.NewService(jwtRepository)
+	entityService := entity.NewService(entityRepository, config, service)
+	streamService := stream.NewService(streamRepository, entityService, config)
 	messageService := message.NewService(rdb, messageRepository, streamService)
 	associationRepository := association.NewRepository(db)
 	associationService := association.NewService(associationRepository, streamService, messageService)
-	handler := activitypub.NewHandler(repository, rdb, messageService, service, associationService, config, apConfig)
+	handler := activitypub.NewHandler(repository, rdb, messageService, entityService, associationService, config, apConfig, version2)
 	return handler
 }
+
+// wire.go:
+
+var jwtServiceProvider = wire.NewSet(jwt.NewService, jwt.NewRepository)
+
+var entityServiceProvider = wire.NewSet(entity.NewService, entity.NewRepository, jwtServiceProvider)
+
+var streamServiceProvider = wire.NewSet(stream.NewService, stream.NewRepository, entityServiceProvider)
+
+var messageServiceProvider = wire.NewSet(message.NewService, message.NewRepository, streamServiceProvider)
+
+var associationServiceProvider = wire.NewSet(association.NewService, association.NewRepository, messageServiceProvider)
