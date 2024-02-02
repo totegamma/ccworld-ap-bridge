@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"encoding/pem"
 	"fmt"
+	"github.com/bradfitz/gomemcache/memcache"
 	"github.com/labstack/echo/v4"
 	"github.com/redis/go-redis/v9"
 	"github.com/totegamma/concurrent/x/association"
@@ -31,6 +32,7 @@ var tracer = otel.Tracer("activitypub")
 type Handler struct {
 	repo        *Repository
 	rdb         *redis.Client
+	mc          *memcache.Client
 	message     message.Service
 	entity      entity.Service
 	association association.Service
@@ -43,6 +45,7 @@ type Handler struct {
 func NewHandler(
 	repo *Repository,
 	rdb *redis.Client,
+	mc *memcache.Client,
 	message message.Service,
 	entity entity.Service,
 	association association.Service,
@@ -50,7 +53,7 @@ func NewHandler(
 	apconfig APConfig,
 	version string,
 ) *Handler {
-	return &Handler{repo, rdb, message, entity, association, config, apconfig, version}
+	return &Handler{repo, rdb, mc, message, entity, association, config, apconfig, version}
 }
 
 // :: Activitypub Related Functions ::
@@ -648,6 +651,30 @@ func (h Handler) Inbox(c echo.Context) error {
 	}
 
 	// return c.String(http.StatusInternalServerError, "Internal server error")
+}
+
+// ResolvePerson resolves extrnal server person.
+func (h Handler) ResolvePerson(c echo.Context) error {
+	ctx, span := tracer.Start(c.Request().Context(), "ResolvePerson")
+	defer span.End()
+
+	id := c.Param("id")
+	if id == "" {
+		return c.String(http.StatusBadRequest, "Invalid username")
+	}
+
+	claims := c.Get("jwtclaims").(jwt.Claims)
+	ccid := claims.Issuer
+	entity, err := h.repo.GetEntityByCCID(ctx, ccid)
+	if err != nil {
+		span.RecordError(err)
+		return c.String(http.StatusNotFound, "entity not found")
+	}
+
+	person, err := h.FetchPerson(ctx, id, entity)
+
+	c.Response().Header().Set("Content-Type", "application/activity+json")
+	return c.JSON(http.StatusOK, echo.Map{"status": "ok", "content": person})
 }
 
 // :: Database related functions ::

@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/bradfitz/gomemcache/memcache"
 	"github.com/totegamma/httpsig"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/propagation"
@@ -77,6 +78,16 @@ func (h Handler) FetchPerson(ctx context.Context, actor string, execEntity ApEnt
 	_, span := tracer.Start(ctx, "FetchPerson")
 	defer span.End()
 
+	// try cache
+	cache, err := h.mc.Get(actor)
+	if err == nil {
+		person := Person{}
+		err = json.Unmarshal(cache.Value, &person)
+		if err == nil {
+			return person, nil
+		}
+	}
+
 	var person Person
 	req, err := http.NewRequest("GET", actor, nil)
 	if err != nil {
@@ -116,6 +127,16 @@ func (h Handler) FetchPerson(ctx context.Context, actor string, execEntity ApEnt
 	err = json.Unmarshal(body, &person)
 	if err != nil {
 		return person, err
+	}
+
+	// cache
+	personBytes, err := json.Marshal(person)
+	if err == nil {
+		h.mc.Set(&memcache.Item{
+			Key:        actor,
+			Value:      personBytes,
+			Expiration: 1800, // 30 minutes
+		})
 	}
 
 	return person, nil

@@ -174,12 +174,13 @@ func main() {
 
 	// should be restricted
 	apR := ap.Group("", auth.ParseJWT)
-	apR.POST("/api/entity", activitypubHandler.CreateEntity, authService.Restrict(auth.ISLOCAL))   // ISLOCAL
-	apR.PUT("/api/person", activitypubHandler.UpdatePerson, authService.Restrict(auth.ISLOCAL))    // ISLOCAL
-	apR.POST("/api/follow/:id", activitypubHandler.Follow, authService.Restrict(auth.ISLOCAL))     // ISLOCAL
-	apR.DELETE("/api/follow/:id", activitypubHandler.UnFollow, authService.Restrict(auth.ISLOCAL)) // ISLOCAL
-	apR.GET("/api/stats", activitypubHandler.GetStats, authService.Restrict(auth.ISLOCAL))         // ISLOCAL
-	apR.GET("/api/import", activitypubHandler.ImportNote, authService.Restrict(auth.ISLOCAL))      // ISLOCAL
+	apR.POST("/api/entity", activitypubHandler.CreateEntity, authService.Restrict(auth.ISLOCAL))      // ISLOCAL
+	apR.PUT("/api/person", activitypubHandler.UpdatePerson, authService.Restrict(auth.ISLOCAL))       // ISLOCAL
+	apR.GET("/api/resolve/:id", activitypubHandler.ResolvePerson, authService.Restrict(auth.ISLOCAL)) // ISLOCAL
+	apR.POST("/api/follow/:id", activitypubHandler.Follow, authService.Restrict(auth.ISLOCAL))        // ISLOCAL
+	apR.DELETE("/api/follow/:id", activitypubHandler.UnFollow, authService.Restrict(auth.ISLOCAL))    // ISLOCAL
+	apR.GET("/api/stats", activitypubHandler.GetStats, authService.Restrict(auth.ISLOCAL))            // ISLOCAL
+	apR.GET("/api/import", activitypubHandler.ImportNote, authService.Restrict(auth.ISLOCAL))         // ISLOCAL
 
 	e.GET("/health", func(c echo.Context) (err error) {
 		ctx := c.Request().Context()
