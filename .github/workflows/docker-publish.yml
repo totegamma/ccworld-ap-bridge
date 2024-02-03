@@ -33,6 +33,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
+        with:
+          fetch-tags: ${{ github.ref_name }}
 
       - name: setup go
         uses: actions/setup-go@v2
