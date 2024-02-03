@@ -658,8 +658,13 @@ func (h Handler) ResolvePerson(c echo.Context) error {
 	ctx, span := tracer.Start(c.Request().Context(), "ResolvePerson")
 	defer span.End()
 
-	id := c.Param("id")
-	if id == "" {
+	encoded := c.Param("id")
+	if encoded == "" {
+		return c.String(http.StatusBadRequest, "Invalid username")
+	}
+
+	decoded, err := url.PathUnescape(encoded)
+	if err != nil {
 		return c.String(http.StatusBadRequest, "Invalid username")
 	}
 
@@ -671,7 +676,7 @@ func (h Handler) ResolvePerson(c echo.Context) error {
 		return c.String(http.StatusNotFound, "entity not found")
 	}
 
-	person, err := h.FetchPerson(ctx, id, entity)
+	person, err := h.FetchPerson(ctx, decoded, entity)
 
 	c.Response().Header().Set("Content-Type", "application/activity+json")
 	return c.JSON(http.StatusOK, echo.Map{"status": "ok", "content": person})
