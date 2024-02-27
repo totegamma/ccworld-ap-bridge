@@ -12,8 +12,8 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/redis/go-redis/v9"
 	"github.com/totegamma/concurrent/x/association"
+	"github.com/totegamma/concurrent/x/core"
 	"github.com/totegamma/concurrent/x/entity"
-	"github.com/totegamma/concurrent/x/jwt"
 	"github.com/totegamma/concurrent/x/message"
 	"github.com/totegamma/concurrent/x/util"
 	"go.opentelemetry.io/otel"
@@ -585,7 +585,7 @@ func (h Handler) Inbox(c echo.Context) error {
 				return c.String(http.StatusNotFound, "like not found")
 			}
 
-			_, err = h.association.Delete(ctx, deleteRef.CcObjectID)
+			_, err = h.association.Delete(ctx, deleteRef.CcObjectID, h.apconfig.ProxyCCID)
 			if err != nil {
 				span.RecordError(err)
 				return c.String(http.StatusInternalServerError, "Internal server error (delete like error)")
@@ -668,9 +668,12 @@ func (h Handler) ResolvePerson(c echo.Context) error {
 		return c.String(http.StatusBadRequest, "Invalid username")
 	}
 
-	claims := c.Get("jwtclaims").(jwt.Claims)
-	ccid := claims.Issuer
-	entity, err := h.repo.GetEntityByCCID(ctx, ccid)
+	requester, ok := c.Get(core.RequesterIdCtxKey).(string)
+	if !ok {
+		return c.JSON(http.StatusForbidden, echo.Map{"status": "error", "message": "requester not found"})
+	}
+
+	entity, err := h.repo.GetEntityByCCID(ctx, requester)
 	if err != nil {
 		span.RecordError(err)
 		return c.String(http.StatusNotFound, "entity not found")
@@ -709,16 +712,18 @@ func (h Handler) UpdatePerson(c echo.Context) error {
 	ctx, span := tracer.Start(c.Request().Context(), "UpdatePerson")
 	defer span.End()
 
-	claims := c.Get("jwtclaims").(jwt.Claims)
-	ccid := claims.Issuer
+	requester, ok := c.Get(core.RequesterIdCtxKey).(string)
+	if !ok {
+		return c.JSON(http.StatusForbidden, echo.Map{"status": "error", "message": "requester not found"})
+	}
 
-	entity, err := h.repo.GetEntityByCCID(ctx, ccid)
+	entity, err := h.repo.GetEntityByCCID(ctx, requester)
 	if err != nil {
 		span.RecordError(err)
 		return c.String(http.StatusNotFound, "entity not found")
 	}
 
-	if entity.CCID != ccid {
+	if entity.CCID != requester {
 		return c.String(http.StatusUnauthorized, "unauthorized")
 	}
 
@@ -743,9 +748,12 @@ func (h Handler) Follow(c echo.Context) error {
 	ctx, span := tracer.Start(c.Request().Context(), "Follow")
 	defer span.End()
 
-	claims := c.Get("jwtclaims").(jwt.Claims)
-	ccid := claims.Issuer
-	entity, err := h.repo.GetEntityByCCID(ctx, ccid)
+	requester, ok := c.Get(core.RequesterIdCtxKey).(string)
+	if !ok {
+		return c.JSON(http.StatusForbidden, echo.Map{"status": "error", "message": "requester not found"})
+	}
+
+	entity, err := h.repo.GetEntityByCCID(ctx, requester)
 	if err != nil {
 		span.RecordError(err)
 		return c.String(http.StatusNotFound, "entity not found")
@@ -815,10 +823,12 @@ func (h Handler) UnFollow(c echo.Context) error {
 	ctx, span := tracer.Start(c.Request().Context(), "Unfollow")
 	defer span.End()
 
-	claims := c.Get("jwtclaims").(jwt.Claims)
-	ccid := claims.Issuer
+	requester, ok := c.Get(core.RequesterIdCtxKey).(string)
+	if !ok {
+		return c.JSON(http.StatusForbidden, echo.Map{"status": "error", "message": "requester not found"})
+	}
 
-	entity, err := h.repo.GetEntityByCCID(ctx, ccid)
+	entity, err := h.repo.GetEntityByCCID(ctx, requester)
 	if err != nil {
 		span.RecordError(err)
 		return c.String(http.StatusNotFound, "entity not found")
@@ -892,8 +902,10 @@ func (h Handler) CreateEntity(c echo.Context) error {
 	ctx, span := tracer.Start(c.Request().Context(), "CreateEntity")
 	defer span.End()
 
-	claims := c.Get("jwtclaims").(jwt.Claims)
-	ccid := claims.Issuer
+	requester, ok := c.Get(core.RequesterIdCtxKey).(string)
+	if !ok {
+		return c.JSON(http.StatusForbidden, echo.Map{"status": "error", "message": "requester not found"})
+	}
 
 	var request CreateEntityRequest
 	err := c.Bind(&request)
@@ -903,7 +915,7 @@ func (h Handler) CreateEntity(c echo.Context) error {
 	}
 
 	// check if entity already exists
-	entity, err := h.repo.GetEntityByCCID(ctx, ccid)
+	entity, err := h.repo.GetEntityByCCID(ctx, requester)
 	if err == nil { // Update
 		entity.HomeStream = request.HomeStream
 		entity.NotificationStream = request.NotificationStream
@@ -949,7 +961,7 @@ func (h Handler) CreateEntity(c echo.Context) error {
 
 		created, err := h.repo.CreateEntity(ctx, ApEntity{
 			ID:                 request.ID,
-			CCID:               ccid,
+			CCID:               requester,
 			Publickey:          string(pubKeyPEM),
 			Privatekey:         string(privKeyPEM),
 			HomeStream:         request.HomeStream,
@@ -1007,10 +1019,12 @@ func (h Handler) GetStats(c echo.Context) error {
 	ctx, span := tracer.Start(c.Request().Context(), "GetStats")
 	defer span.End()
 
-	claims := c.Get("jwtclaims").(jwt.Claims)
-	ccid := claims.Issuer
+	requester, ok := c.Get(core.RequesterIdCtxKey).(string)
+	if !ok {
+		return c.JSON(http.StatusForbidden, echo.Map{"status": "error", "message": "requester not found"})
+	}
 
-	entity, err := h.repo.GetEntityByCCID(ctx, ccid)
+	entity, err := h.repo.GetEntityByCCID(ctx, requester)
 	if err != nil {
 		span.RecordError(err)
 		return c.String(http.StatusNotFound, "entity not found")
@@ -1049,13 +1063,13 @@ func (h Handler) NodeInfo(c echo.Context) error {
 	ctx, span := tracer.Start(c.Request().Context(), "NodeInfo")
 	defer span.End()
 
-	messages, err := h.message.Total(ctx)
+	messages, err := h.message.Count(ctx)
 	if err != nil {
 		span.RecordError(err)
 		return c.String(http.StatusInternalServerError, "Internal server error")
 	}
 
-	users, err := h.entity.Total(ctx)
+	users, err := h.entity.Count(ctx)
 	if err != nil {
 		span.RecordError(err)
 		return c.String(http.StatusInternalServerError, "Internal server error")
@@ -1095,9 +1109,12 @@ func (h Handler) ImportNote(c echo.Context) error {
 	ctx, span := tracer.Start(c.Request().Context(), "ImportNote")
 	defer span.End()
 
-	claims := c.Get("jwtclaims").(jwt.Claims)
-	ccid := claims.Issuer
-	entity, err := h.repo.GetEntityByCCID(ctx, ccid)
+	requester, ok := c.Get(core.RequesterIdCtxKey).(string)
+	if !ok {
+		return c.JSON(http.StatusForbidden, echo.Map{"status": "error", "message": "requester not found"})
+	}
+
+	entity, err := h.repo.GetEntityByCCID(ctx, requester)
 	if err != nil {
 		span.RecordError(err)
 		return c.String(http.StatusNotFound, "entity not found")

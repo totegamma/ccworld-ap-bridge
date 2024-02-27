@@ -89,6 +89,7 @@ func main() {
 	e.Use(echoprometheus.NewMiddleware("ccapi"))
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
+	e.Use(auth.ReceiveGatewayAuthPropagation)
 
 	e.Binder = &activitypub.Binder{}
 
@@ -146,7 +147,6 @@ func main() {
 
 	var emptyManager socket.Manager
 
-	authService := SetupAuthService(db, rdb, config)
 	activitypubHandler := SetupActivitypubHandler(
 		db,
 		rdb,
@@ -173,14 +173,13 @@ func main() {
 	ap.POST("/inbox", activitypubHandler.Inbox)
 
 	// should be restricted
-	apR := ap.Group("", auth.ParseJWT)
-	apR.POST("/api/entity", activitypubHandler.CreateEntity, authService.Restrict(auth.ISLOCAL))      // ISLOCAL
-	apR.PUT("/api/person", activitypubHandler.UpdatePerson, authService.Restrict(auth.ISLOCAL))       // ISLOCAL
-	apR.GET("/api/resolve/:id", activitypubHandler.ResolvePerson, authService.Restrict(auth.ISLOCAL)) // ISLOCAL
-	apR.POST("/api/follow/:id", activitypubHandler.Follow, authService.Restrict(auth.ISLOCAL))        // ISLOCAL
-	apR.DELETE("/api/follow/:id", activitypubHandler.UnFollow, authService.Restrict(auth.ISLOCAL))    // ISLOCAL
-	apR.GET("/api/stats", activitypubHandler.GetStats, authService.Restrict(auth.ISLOCAL))            // ISLOCAL
-	apR.GET("/api/import", activitypubHandler.ImportNote, authService.Restrict(auth.ISLOCAL))         // ISLOCAL
+	ap.POST("/api/entity", activitypubHandler.CreateEntity, auth.Restrict(auth.ISLOCAL))      // ISLOCAL
+	ap.PUT("/api/person", activitypubHandler.UpdatePerson, auth.Restrict(auth.ISLOCAL))       // ISLOCAL
+	ap.GET("/api/resolve/:id", activitypubHandler.ResolvePerson, auth.Restrict(auth.ISLOCAL)) // ISLOCAL
+	ap.POST("/api/follow/:id", activitypubHandler.Follow, auth.Restrict(auth.ISLOCAL))        // ISLOCAL
+	ap.DELETE("/api/follow/:id", activitypubHandler.UnFollow, auth.Restrict(auth.ISLOCAL))    // ISLOCAL
+	ap.GET("/api/stats", activitypubHandler.GetStats, auth.Restrict(auth.ISLOCAL))            // ISLOCAL
+	ap.GET("/api/import", activitypubHandler.ImportNote, auth.Restrict(auth.ISLOCAL))         // ISLOCAL
 
 	e.GET("/health", func(c echo.Context) (err error) {
 		ctx := c.Request().Context()

@@ -11,56 +11,141 @@ import (
 	"github.com/google/wire"
 	"github.com/redis/go-redis/v9"
 	"github.com/totegamma/ccworld-ap-bridge/x/activitypub"
+	"github.com/totegamma/concurrent/x/agent"
 	"github.com/totegamma/concurrent/x/association"
 	"github.com/totegamma/concurrent/x/auth"
+	"github.com/totegamma/concurrent/x/character"
 	"github.com/totegamma/concurrent/x/domain"
 	"github.com/totegamma/concurrent/x/entity"
 	"github.com/totegamma/concurrent/x/jwt"
+	"github.com/totegamma/concurrent/x/key"
 	"github.com/totegamma/concurrent/x/message"
 	"github.com/totegamma/concurrent/x/socket"
 	"github.com/totegamma/concurrent/x/stream"
+	"github.com/totegamma/concurrent/x/userkv"
 	"github.com/totegamma/concurrent/x/util"
 	"gorm.io/gorm"
 )
 
 // Injectors from wire.go:
 
-func SetupAuthService(db *gorm.DB, rdb *redis.Client, config util.Config) auth.Service {
-	repository := auth.NewRepository()
-	entityRepository := entity.NewRepository(db)
-	jwtRepository := jwt.NewRepository(rdb)
-	service := jwt.NewService(jwtRepository)
-	entityService := entity.NewService(entityRepository, config, service)
-	domainRepository := domain.NewRepository(db)
-	domainService := domain.NewService(domainRepository)
-	authService := auth.NewService(repository, config, entityService, domainService)
+func SetupActivitypubHandler(db *gorm.DB, rdb *redis.Client, mc *memcache.Client, config util.Config, apConfig activitypub.APConfig, manager socket.Manager, version2 string) *activitypub.Handler {
+	repository := activitypub.NewRepository(db)
+	service := SetupMessageService(db, rdb, mc, manager, config)
+	entityService := SetupEntityService(db, rdb, mc, config)
+	associationService := SetupAssociationService(db, rdb, mc, manager, config)
+	handler := activitypub.NewHandler(repository, rdb, mc, service, entityService, associationService, config, apConfig, version2)
+	return handler
+}
+
+func SetupJwtService(rdb *redis.Client) jwt.Service {
+	repository := jwt.NewRepository(rdb)
+	service := jwt.NewService(repository)
+	return service
+}
+
+func SetupKeyService(db *gorm.DB, rdb *redis.Client, mc *memcache.Client, config util.Config) key.Service {
+	repository := key.NewRepository(db, mc)
+	service := SetupEntityService(db, rdb, mc, config)
+	keyService := key.NewService(repository, service, config)
+	return keyService
+}
+
+func SetupMessageService(db *gorm.DB, rdb *redis.Client, mc *memcache.Client, manager socket.Manager, config util.Config) message.Service {
+	repository := message.NewRepository(db, mc)
+	service := SetupStreamService(db, rdb, mc, manager, config)
+	keyService := SetupKeyService(db, rdb, mc, config)
+	messageService := message.NewService(rdb, repository, service, keyService)
+	return messageService
+}
+
+func SetupCharacterService(db *gorm.DB, rdb *redis.Client, mc *memcache.Client, config util.Config) character.Service {
+	repository := character.NewRepository(db, mc)
+	service := SetupKeyService(db, rdb, mc, config)
+	characterService := character.NewService(repository, service)
+	return characterService
+}
+
+func SetupAssociationService(db *gorm.DB, rdb *redis.Client, mc *memcache.Client, manager socket.Manager, config util.Config) association.Service {
+	repository := association.NewRepository(db, mc)
+	service := SetupStreamService(db, rdb, mc, manager, config)
+	messageService := SetupMessageService(db, rdb, mc, manager, config)
+	keyService := SetupKeyService(db, rdb, mc, config)
+	associationService := association.NewService(repository, service, messageService, keyService)
+	return associationService
+}
+
+func SetupStreamService(db *gorm.DB, rdb *redis.Client, mc *memcache.Client, manager socket.Manager, config util.Config) stream.Service {
+	repository := stream.NewRepository(db, rdb, mc, manager, config)
+	service := SetupEntityService(db, rdb, mc, config)
+	domainService := SetupDomainService(db, config)
+	streamService := stream.NewService(repository, service, domainService, config)
+	return streamService
+}
+
+func SetupDomainService(db *gorm.DB, config util.Config) domain.Service {
+	repository := domain.NewRepository(db)
+	service := domain.NewService(repository, config)
+	return service
+}
+
+func SetupEntityService(db *gorm.DB, rdb *redis.Client, mc *memcache.Client, config util.Config) entity.Service {
+	repository := entity.NewRepository(db, mc)
+	service := SetupJwtService(rdb)
+	entityService := entity.NewService(repository, config, service)
+	return entityService
+}
+
+func SetupSocketHandler(rdb *redis.Client, manager socket.Manager, config util.Config) socket.Handler {
+	service := socket.NewService()
+	handler := socket.NewHandler(service, rdb, manager)
+	return handler
+}
+
+func SetupAgent(db *gorm.DB, rdb *redis.Client, mc *memcache.Client, config util.Config) agent.Agent {
+	service := SetupDomainService(db, config)
+	entityService := SetupEntityService(db, rdb, mc, config)
+	agentAgent := agent.NewAgent(rdb, config, service, entityService)
+	return agentAgent
+}
+
+func SetupAuthService(db *gorm.DB, rdb *redis.Client, mc *memcache.Client, config util.Config) auth.Service {
+	service := SetupEntityService(db, rdb, mc, config)
+	domainService := SetupDomainService(db, config)
+	keyService := SetupKeyService(db, rdb, mc, config)
+	authService := auth.NewService(config, service, domainService, keyService)
 	return authService
 }
 
-func SetupActivitypubHandler(db *gorm.DB, rdb *redis.Client, mc *memcache.Client, config util.Config, apConfig activitypub.APConfig, manager socket.Manager, version2 string) *activitypub.Handler {
-	repository := activitypub.NewRepository(db)
-	messageRepository := message.NewRepository(db)
-	streamRepository := stream.NewRepository(db, rdb, mc, manager, config)
-	entityRepository := entity.NewRepository(db)
-	jwtRepository := jwt.NewRepository(rdb)
-	service := jwt.NewService(jwtRepository)
-	entityService := entity.NewService(entityRepository, config, service)
-	streamService := stream.NewService(streamRepository, entityService, config)
-	messageService := message.NewService(rdb, messageRepository, streamService)
-	associationRepository := association.NewRepository(db)
-	associationService := association.NewService(associationRepository, streamService, messageService)
-	handler := activitypub.NewHandler(repository, rdb, messageService, entityService, associationService, config, apConfig, version2)
-	return handler
+func SetupUserkvService(rdb *redis.Client) userkv.Service {
+	repository := userkv.NewRepository(rdb)
+	service := userkv.NewService(repository)
+	return service
+}
+
+func SetupSocketManager(mc *memcache.Client, db *gorm.DB, rdb *redis.Client, config util.Config) socket.Manager {
+	manager := socket.NewManager(mc, rdb, config)
+	return manager
 }
 
 // wire.go:
 
 var jwtServiceProvider = wire.NewSet(jwt.NewService, jwt.NewRepository)
 
-var entityServiceProvider = wire.NewSet(entity.NewService, entity.NewRepository, jwtServiceProvider)
+var domainServiceProvider = wire.NewSet(domain.NewService, domain.NewRepository)
 
-var streamServiceProvider = wire.NewSet(stream.NewService, stream.NewRepository, entityServiceProvider)
+var entityServiceProvider = wire.NewSet(entity.NewService, entity.NewRepository, SetupJwtService)
 
-var messageServiceProvider = wire.NewSet(message.NewService, message.NewRepository, streamServiceProvider)
+var streamServiceProvider = wire.NewSet(stream.NewService, stream.NewRepository, SetupEntityService, SetupDomainService)
 
-var associationServiceProvider = wire.NewSet(association.NewService, association.NewRepository, messageServiceProvider)
+var associationServiceProvider = wire.NewSet(association.NewService, association.NewRepository, SetupStreamService, SetupMessageService, SetupKeyService)
+
+var characterServiceProvider = wire.NewSet(character.NewService, character.NewRepository, SetupKeyService)
+
+var authServiceProvider = wire.NewSet(auth.NewService, SetupEntityService, SetupDomainService, SetupKeyService)
+
+var messageServiceProvider = wire.NewSet(message.NewService, message.NewRepository, SetupStreamService, SetupKeyService)
+
+var keyServiceProvider = wire.NewSet(key.NewService, key.NewRepository, SetupEntityService)
+
+var userKvServiceProvider = wire.NewSet(userkv.NewService, userkv.NewRepository)
