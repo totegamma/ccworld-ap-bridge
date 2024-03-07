@@ -156,8 +156,8 @@ github.com/stretchr/testify v1.3.0/go.mod h1:M5WIy9Dh21IEIfnGCwXGc5bZfKNJtfHm1UV
 github.com/stretchr/testify v1.7.0/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
 github.com/stretchr/testify v1.8.4 h1:CcVxjf3Q8PM0mHUKJCdn+eZZtm5yQwehR5yeSVQQcUk=
 github.com/stretchr/testify v1.8.4/go.mod h1:sz/lmYIOXD/1dqDmKjjqLyZ2RngseejIcXlSw2iwfAo=
-github.com/totegamma/concurrent v0.6.7 h1:9mCvNWtiEmKQfBxFCU+CY0sSv+lDI/o+RUKBTe4bQCI=
-github.com/totegamma/concurrent v0.6.7/go.mod h1:76z0kUlbf7kt/9/MNFhJR0VZ4UqagF0dt712fTJLL1k=
+github.com/totegamma/concurrent v0.6.9-beta1 h1:d92ZRLqgH4Kcjb8HyzKJ1wdHdq0OgUU0eMaVEVT5cP8=
+github.com/totegamma/concurrent v0.6.9-beta1/go.mod h1:76z0kUlbf7kt/9/MNFhJR0VZ4UqagF0dt712fTJLL1k=
 github.com/totegamma/httpsig v1.1.1 h1:GKwQnUXJ17mcicR+z0AoOwjgdZwYQKXueyRfNKrZUnY=
 github.com/totegamma/httpsig v1.1.1/go.mod h1:tySNq5FAruX0lRLY6Z/4oD45uNlbRHxHXVvt9wD4Iz4=
 github.com/valyala/bytebufferpool v1.0.0 h1:GqA5TC/0021Y/b9FG4Oi9Mr3q7XYx6KllzawFIhcdPw=

@@ -13,7 +13,7 @@ require (
 	github.com/labstack/echo/v4 v4.11.1
 	github.com/redis/go-redis/extra/redisotel/v9 v9.0.5
 	github.com/redis/go-redis/v9 v9.1.0
-	github.com/totegamma/concurrent v0.6.7
+	github.com/totegamma/concurrent v0.6.9-beta1
 	github.com/totegamma/httpsig v1.1.1
 	go.opentelemetry.io/contrib/instrumentation/github.com/labstack/echo/otelecho v0.43.0
 	go.opentelemetry.io/otel v1.17.0

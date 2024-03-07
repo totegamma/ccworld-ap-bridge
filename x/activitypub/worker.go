@@ -205,7 +205,7 @@ func (h *Handler) StartAssociationWorker(notificationStream string) {
 			continue
 		}
 
-		msg, err := h.message.Get(ctx, ass.TargetID)
+		msg, err := h.message.Get(ctx, ass.TargetID, h.apconfig.ProxyCCID)
 		if err != nil {
 			log.Printf("error: %v", err)
 			continue
@@ -281,7 +281,7 @@ func (h *Handler) StartAssociationWorker(notificationStream string) {
 			// 	continue
 			// }
 
-			reply, err := h.message.Get(ctx, messageId)
+			reply, err := h.message.Get(ctx, messageId, h.apconfig.ProxyCCID)
 			if err != nil {
 				log.Printf("error: %v", err)
 				continue
@@ -335,7 +335,7 @@ func (h *Handler) StartAssociationWorker(notificationStream string) {
 			// 	continue
 			// }
 
-			reply, err := h.message.Get(ctx, messageId)
+			reply, err := h.message.Get(ctx, messageId, h.apconfig.ProxyCCID)
 			if err != nil {
 				log.Printf("error: %v", err)
 				continue

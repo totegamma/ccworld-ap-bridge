@@ -169,7 +169,7 @@ func (h Handler) Note(c echo.Context) error {
 		return c.String(http.StatusBadRequest, "Invalid noteID")
 	}
 
-	msg, err := h.message.Get(ctx, id)
+	msg, err := h.message.Get(ctx, id, h.apconfig.ProxyCCID)
 	if err != nil {
 		span.RecordError(err)
 		return c.String(http.StatusNotFound, "message not found")
@@ -279,7 +279,7 @@ func (h Handler) Inbox(c echo.Context) error {
 
 	case "Like":
 		targetID := strings.Replace(object.Object.(string), "https://"+h.config.Concurrent.FQDN+"/ap/note/", "", 1)
-		targetMsg, err := h.message.Get(ctx, targetID)
+		targetMsg, err := h.message.Get(ctx, targetID, h.apconfig.ProxyCCID)
 		if err != nil {
 			span.RecordError(err)
 			return c.String(http.StatusOK, "message not found")
@@ -1128,7 +1128,7 @@ func (h Handler) ImportNote(c echo.Context) error {
 
 	existing, err := h.repo.GetApObjectReferenceByApObjectID(ctx, noteID)
 	if err == nil {
-		message, err := h.message.Get(ctx, existing.CcObjectID)
+		message, err := h.message.Get(ctx, existing.CcObjectID, h.apconfig.ProxyCCID)
 		if err == nil {
 			return c.JSON(http.StatusOK, echo.Map{"status": "ok", "content": message})
 		}

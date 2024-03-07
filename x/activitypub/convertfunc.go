@@ -16,7 +16,7 @@ func (h Handler) MessageToNote(ctx context.Context, messageID string) (Note, err
 	ctx, span := tracer.Start(ctx, "MessageToNote")
 	defer span.End()
 
-	msg, err := h.message.Get(ctx, messageID)
+	msg, err := h.message.Get(ctx, messageID, h.apconfig.ProxyCCID)
 	if err != nil {
 		span.RecordError(err)
 		return Note{}, errors.New("message not found")
@@ -108,7 +108,7 @@ func (h Handler) MessageToNote(ctx context.Context, messageID string) (Note, err
 			return Note{}, errors.New("invalid body")
 		}
 
-		replySource, err := h.message.Get(ctx, sourceID)
+		replySource, err := h.message.Get(ctx, sourceID, h.apconfig.ProxyCCID)
 		if err != nil {
 			span.RecordError(err)
 			return Note{}, errors.New("message not found")
@@ -145,7 +145,7 @@ func (h Handler) MessageToNote(ctx context.Context, messageID string) (Note, err
 			return Note{}, errors.New("invalid body")
 		}
 
-		rerouteSource, err := h.message.Get(ctx, sourceID)
+		rerouteSource, err := h.message.Get(ctx, sourceID, h.apconfig.ProxyCCID)
 		if err != nil {
 			span.RecordError(err)
 			return Note{}, errors.New("message not found")
