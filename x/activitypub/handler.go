@@ -927,7 +927,13 @@ func (h Handler) MoveTo(c echo.Context) error {
 		return c.String(http.StatusBadRequest, "Invalid request body")
 	}
 
-	destPerson, err := h.FetchPerson(ctx, req.MoveTo, entity)
+    personID, err := ResolveActor(ctx, req.MoveTo)
+    if err != nil {
+        span.RecordError(err)
+        return c.String(http.StatusNotFound, "destination not found")
+    }
+
+	destPerson, err := h.FetchPerson(ctx, personID, entity)
 	if err != nil {
 		span.RecordError(err)
 		return c.String(http.StatusNotFound, "destination not found")
