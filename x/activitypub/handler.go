@@ -989,7 +989,7 @@ func (h Handler) MoveTo(c echo.Context) error {
 		}
 	}
 
-	return c.String(http.StatusOK, "Entity moved")
+    return c.JSON(http.StatusOK, echo.Map{"status": "ok", "message": "Entity moved!"})
 }
 
 // CreateEntity handles entity creation.
