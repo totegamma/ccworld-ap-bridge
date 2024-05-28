@@ -41,6 +41,9 @@ func (h *Handler) StartMessageWorker() {
 				if home == "" {
 					continue
 				}
+				if entity.MovedTo != "" {
+					continue
+				}
 				pubsub := h.rdb.Subscribe(ctx)
 				pubsub.Subscribe(ctx, home)
 
@@ -189,6 +192,10 @@ func (h *Handler) StartAssociationWorker(notificationStream string) {
 		assauthor, err := h.repo.GetEntityByCCID(ctx, ass.Author)
 		if err != nil {
 			log.Printf("get ass author entity failed: %v", err)
+			continue
+		}
+
+		if assauthor.MovedTo != "" {
 			continue
 		}
 

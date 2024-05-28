@@ -156,6 +156,7 @@ func (h Handler) User(c echo.Context) error {
 			Owner:        "https://" + h.config.Concurrent.FQDN + "/ap/acct/" + id,
 			PublicKeyPem: entity.Publickey,
 		},
+		MovedTo: entity.MovedTo,
 	})
 }
 
@@ -913,40 +914,40 @@ func (h Handler) MoveTo(c echo.Context) error {
 	entity, err := h.repo.GetEntityByCCID(ctx, requester)
 	if err != nil {
 		span.RecordError(err)
-		return c.String(http.StatusNotFound, "entity not found")
+		return c.JSON(http.StatusBadRequest, echo.Map{"status": "error", "message": "entity not found"})
 	}
 
 	if entity.MovedTo != "" {
-		return c.String(http.StatusBadRequest, "Entity already moved")
+		return c.JSON(http.StatusBadRequest, echo.Map{"status": "error", "message": "Entity already moved"})
 	}
 
 	var req MoveToRequest
 	err = c.Bind(&req)
 	if err != nil {
 		span.RecordError(err)
-		return c.String(http.StatusBadRequest, "Invalid request body")
+		return c.JSON(http.StatusBadRequest, echo.Map{"status": "error", "message": "Invalid request body"})
 	}
 
-    personID, err := ResolveActor(ctx, req.MoveTo)
-    if err != nil {
-        span.RecordError(err)
-        return c.String(http.StatusNotFound, "destination not found")
-    }
+	personID, err := ResolveActor(ctx, req.MoveTo)
+	if err != nil {
+		span.RecordError(err)
+		return c.JSON(http.StatusBadRequest, echo.Map{"status": "error", "message": "destination not found"})
+	}
 
 	destPerson, err := h.FetchPerson(ctx, personID, entity)
 	if err != nil {
 		span.RecordError(err)
-		return c.String(http.StatusNotFound, "destination not found")
+		return c.JSON(http.StatusBadRequest, echo.Map{"status": "error", "message": "destination not found"})
 	}
 
 	if destPerson.MovedTo != "" {
-		return c.String(http.StatusBadRequest, "Destination already moved")
+		return c.JSON(http.StatusBadRequest, echo.Map{"status": "error", "message": "Destination already moved"})
 	}
 
 	var destHasAlias bool
 	for _, alias := range destPerson.AlsoKnownAs {
 		if alias == entity.CCID {
-			return c.String(http.StatusBadRequest, "Cannot move to self")
+			return c.JSON(http.StatusBadRequest, echo.Map{"status": "error", "message": "Cannot move to self"})
 		}
 
 		if alias == "https://"+h.config.Concurrent.FQDN+"/ap/acct/"+entity.ID {
@@ -955,19 +956,19 @@ func (h Handler) MoveTo(c echo.Context) error {
 	}
 
 	if !destHasAlias {
-		return c.String(http.StatusBadRequest, "Destination does not have alias")
+		return c.JSON(http.StatusBadRequest, echo.Map{"status": "error", "message": "Destination does not have alias"})
 	}
 
 	err = h.repo.SetEntityMovedTo(ctx, entity.ID, destPerson.ID)
 	if err != nil {
 		span.RecordError(err)
-		return c.String(http.StatusInternalServerError, "Internal server error")
+		return c.JSON(http.StatusBadRequest, echo.Map{"status": "error", "message": "Internal server error"})
 	}
 
 	followers, err := h.repo.GetFollowers(ctx, entity.ID)
 	if err != nil {
 		span.RecordError(err)
-		return c.String(http.StatusInternalServerError, "Internal server error")
+		return c.JSON(http.StatusBadRequest, echo.Map{"status": "error", "message": "Internal server error"})
 	}
 
 	// distribute move activity
