@@ -174,6 +174,7 @@ func main() {
 
 	// should be restricted
 	ap.POST("/api/entity", activitypubHandler.CreateEntity, auth.Restrict(auth.ISLOCAL))      // ISLOCAL
+	ap.POST("/api/entities/move", activitypubHandler.MoveTo, auth.Restrict(auth.ISLOCAL))     // ISLOCAL
 	ap.PUT("/api/person", activitypubHandler.UpdatePerson, auth.Restrict(auth.ISLOCAL))       // ISLOCAL
 	ap.GET("/api/resolve/:id", activitypubHandler.ResolvePerson, auth.Restrict(auth.ISLOCAL)) // ISLOCAL
 	ap.POST("/api/follow/:id", activitypubHandler.Follow, auth.Restrict(auth.ISLOCAL))        // ISLOCAL

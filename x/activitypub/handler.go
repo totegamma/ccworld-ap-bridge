@@ -897,6 +897,94 @@ func (h Handler) UnFollow(c echo.Context) error {
 	return c.JSON(http.StatusOK, echo.Map{"status": "ok", "content": deleted})
 }
 
+type MoveToRequest struct {
+	MoveTo string `json:"move_to"`
+}
+
+func (h Handler) MoveTo(c echo.Context) error {
+	ctx, span := tracer.Start(c.Request().Context(), "MoveTo")
+	defer span.End()
+
+	requester, ok := c.Get(core.RequesterIdCtxKey).(string)
+	if !ok {
+		return c.JSON(http.StatusForbidden, echo.Map{"status": "error", "message": "requester not found"})
+	}
+
+	entity, err := h.repo.GetEntityByCCID(ctx, requester)
+	if err != nil {
+		span.RecordError(err)
+		return c.String(http.StatusNotFound, "entity not found")
+	}
+
+	if entity.MovedTo != "" {
+		return c.String(http.StatusBadRequest, "Entity already moved")
+	}
+
+	var req MoveToRequest
+	err = c.Bind(&req)
+	if err != nil {
+		span.RecordError(err)
+		return c.String(http.StatusBadRequest, "Invalid request body")
+	}
+
+	destPerson, err := h.FetchPerson(ctx, req.MoveTo, entity)
+	if err != nil {
+		span.RecordError(err)
+		return c.String(http.StatusNotFound, "destination not found")
+	}
+
+	if destPerson.MovedTo != "" {
+		return c.String(http.StatusBadRequest, "Destination already moved")
+	}
+
+	var destHasAlias bool
+	for _, alias := range destPerson.AlsoKnownAs {
+		if alias == entity.CCID {
+			return c.String(http.StatusBadRequest, "Cannot move to self")
+		}
+
+		if alias == "https://"+h.config.Concurrent.FQDN+"/ap/acct/"+entity.ID {
+			destHasAlias = true
+		}
+	}
+
+	if !destHasAlias {
+		return c.String(http.StatusBadRequest, "Destination does not have alias")
+	}
+
+	err = h.repo.SetEntityMovedTo(ctx, entity.ID, destPerson.ID)
+	if err != nil {
+		span.RecordError(err)
+		return c.String(http.StatusInternalServerError, "Internal server error")
+	}
+
+	followers, err := h.repo.GetFollowers(ctx, entity.ID)
+	if err != nil {
+		span.RecordError(err)
+		return c.String(http.StatusInternalServerError, "Internal server error")
+	}
+
+	// distribute move activity
+	for _, follower := range followers {
+		moveActivity := Object{
+			Context: "https://www.w3.org/ns/activitystreams",
+			Type:    "Move",
+			ID:      "https://" + h.config.Concurrent.FQDN + "/ap/acct/" + entity.ID + "/move/",
+			Actor:   "https://" + h.config.Concurrent.FQDN + "/ap/acct/" + entity.ID,
+			Object:  "https://" + h.config.Concurrent.FQDN + "/ap/acct/" + entity.ID,
+			Target:  destPerson.ID,
+		}
+
+		err = h.PostToInbox(ctx, follower.SubscriberInbox, moveActivity, entity)
+		if err != nil {
+			span.RecordError(err)
+			continue
+		}
+	}
+
+	return c.String(http.StatusOK, "Entity moved")
+}
+
 // CreateEntity handles entity creation.
 func (h Handler) CreateEntity(c echo.Context) error {
 	ctx, span := tracer.Start(c.Request().Context(), "CreateEntity")

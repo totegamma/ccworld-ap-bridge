@@ -17,6 +17,7 @@ type ApEntity struct {
 	HomeStream         string `json:"homestream" gorm:"type:text"`
 	NotificationStream string `json:"notificationstream" gorm:"type:text"`
 	FollowStream       string `json:"followstream" gorm:"type:text"`
+	MovedTo            string `json:"movedto" gorm:"type:text"`
 }
 
 // ApPerson is a db model of an ActivityPub entity.
@@ -100,6 +101,8 @@ type Person struct {
 	Icon              Icon            `json:"icon,omitempty"`
 	Image             Icon            `json:"image,omitempty"`
 	PublicKey         Key             `json:"publicKey,omitempty"`
+	MovedTo           string          `json:"movedTo,omitempty"`
+	AlsoKnownAs       []string        `json:"alsoKnownAs,omitempty"`
 }
 
 // Key is a struct for the publicKey field of an actor.
@@ -138,6 +141,7 @@ type Object struct {
 	To         []string     `json:"to,omitempty"`
 	Attachment []Attachment `json:"attachment,omitempty"`
 	Tag        []Tag        `json:"tag,omitempty"`
+	Target     string       `json:"target,omitempty"`
 }
 
 // Attachment is a struct for an ActivityPub attachment.

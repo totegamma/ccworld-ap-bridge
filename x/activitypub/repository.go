@@ -57,6 +57,13 @@ func (r Repository) UpdateEntity(ctx context.Context, entity ApEntity) (ApEntity
 	return entity, result.Error
 }
 
+func (r Repository) SetEntityMovedTo(ctx context.Context, id, movedto string) error {
+	ctx, span := tracer.Start(ctx, "RepositorySetEntityMovedTo")
+	defer span.End()
+
+	return r.db.WithContext(ctx).Model(&ApEntity{}).Where("id = ?", id).Update("moved_to", movedto).Error
+}
+
 // GetPersonByID returns a person by ID.
 func (r Repository) GetPersonByID(ctx context.Context, id string) (ApPerson, error) {
 	ctx, span := tracer.Start(ctx, "RepositoryGetPersonByID")

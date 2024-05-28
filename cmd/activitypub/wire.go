@@ -42,7 +42,7 @@ func SetupActivitypubHandler(db *gorm.DB, rdb *redis.Client, mc *memcache.Client
 		activitypub.NewRepository,
 		SetupMessageService,
 		SetupAssociationService,
-        SetupEntityService,
+		SetupEntityService,
 	)
 	return &activitypub.Handler{}
 }
